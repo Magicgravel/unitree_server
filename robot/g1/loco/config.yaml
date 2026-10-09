@@ -1,0 +1,26 @@
+mode: real  # real or sim
+to_real: true  # whether to send commands to the robot, set to false for testing
+play_audio: false  # whether to play audio during the motion
+input_mode: api  # joy, keyboard, api or none
+
+policy_config: ~/policy/config.yaml
+
+### Real robot configuration
+
+domain_id: 0
+network_interface: lo
+num_joints: 29
+
+lowcmd_topic: "rt/lowcmd"
+lowstate_topic: "rt/lowstate"
+
+control_dt: 0.02
+
+error_over_time: 5
+
+
+### Simulation configuration
+
+robot_model: "unitree_robots/g1/scene_29dof_terrain.xml"
+simulation_dt: 0.003  # 0.003
+control_decimation: 7

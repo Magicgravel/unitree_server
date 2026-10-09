@@ -1,0 +1,143 @@
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    Velocity:
+      id: 3
+      type: RLBase
+
+    Mimic_Dance1_subject2:
+      id: 5
+      type: Mimic
+    mimic_jntm:
+      id: 6
+      type: Mimic
+    # mimic_dance_1:
+    #   id: 7
+    #   type: Mimic
+    # mimic_dance_3:
+    #   id: 8
+    #   type: Mimic
+    # mimic_cider_short:
+    #   id: 9
+    #   type: Mimic
+
+  Passive:
+    transitions: 
+      FixStand: LT + up.on_pressed
+    mode: [
+      1,1,1,1,1,1,
+      1,1,1,1,1,1,
+      1,1,1,
+      1,1,1,1,1,1,1,
+      1,1,1,1,1,1,1,
+    ]
+    kd: [
+      3,3,3,3,3,3,
+      3,3,3,3,3,3,
+      3,3,3,
+      3,3,3,3,3,3,3,  
+      3,3,3,3,3,3,3,  
+    ]
+
+
+  FixStand:
+    transitions: 
+      Passive: LT + B.on_pressed
+      Velocity: RT + A.on_pressed
+
+    kp: [
+      100,100,100,150,40,40,
+      100,100,100,150,40,40,
+      200,200,200,
+      40,40,40,40,40,40,40,
+      40,40,40,40,40,40,40,
+    ]
+    kd: [
+      2,2,2,4,2,2,
+      2,2,2,4,2,2,
+      5,5,5,
+      10,10,10,10,10,10,10,
+      10,10,10,10,10,10,10,
+    ]
+    ts: [0, 2]
+    qs: [
+      [],
+      [ -0.1, 0,0,0.3,-0.2,0,
+        -0.1, 0,0,0.3,-0.2,0,
+        0,0,0,
+        0.35, 0.18,0,0.87,0,0,0,
+        0.35,-0.18,0,0.87,0,0,0
+      ]
+    ]
+
+
+  Velocity:
+    transitions: 
+      Passive: LT + B.on_pressed
+      Mimic_Dance1_subject2: RB + A.on_pressed
+      mimic_jntm: RB + B.on_pressed
+
+    policy_dir: config/policy/velocity
+
+
+  Mimic_Dance1_subject2:
+    transitions:
+      Passive: LT + B.on_pressed
+      Velocity: RT + A.on_pressed
+
+    motion_file: config/policy/mimic/dance1_subject2/params/dance1_subject2.npz
+    policy_dir: config/policy/mimic/dance1_subject2/
+    time_start: 0.0
+    time_end: 1000.0
+
+    music_file: null
+
+  mimic_jntm:
+    transitions:
+      Passive: LT + B.on_pressed
+      Velocity: RT + A.on_pressed
+    
+    motion_file: config/policy/mimic/jntm/params/jntm.npz
+    policy_dir: config/policy/mimic/jntm/
+    time_start: 0.0
+    time_end: 1000.0
+
+    music_file: config/policy/mimic/jntm/params/jntm_fixed.wav
+  
+  # mimic_dance_1:
+  #   transitions:
+  #     Passive: LT + B.on_pressed
+  #     Velocity: RT + A.on_pressed
+    
+  #   motion_file: config/policy/mimic/dance_1/params/dance_1.npz
+  #   policy_dir: config/policy/mimic/dance_1/
+  #   time_start: 0.0
+  #   time_end: 1000.0
+
+  #   music_file: config/policy/mimic/dance_1/params/dance_1_fixed.wav
+  
+  # mimic_dance_3:
+  #   transitions:
+  #     Passive: LT + B.on_pressed
+  #     Velocity: RT + A.on_pressed
+    
+  #   motion_file: config/policy/mimic/dance_3/params/dance_3.npz
+  #   policy_dir: config/policy/mimic/dance_3/
+  #   time_start: 0.0
+  #   time_end: 1000.0
+  #   music_file: null
+
+  # mimic_cider_short:
+  #   transitions:
+  #     Passive: LT + B.on_pressed
+  #     Velocity: RT + A.on_pressed
+    
+  #   motion_file: config/policy/mimic/cider_short/params/cider_short.npz
+  #   policy_dir: config/policy/mimic/cider_short/
+  #   time_start: 0.0
+  #   time_end: 1000.0
+
+  #   music_file: config/policy/mimic/cider_short/params/cider_short_fixed.wav
