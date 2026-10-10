@@ -21,6 +21,6 @@ error_over_time: 5
 
 ### Simulation configuration
 
-robot_model: "unitree_robots/g1/scene_29dof_terrain.xml"
+robot_model: "unitree_mujoco/unitree_robots/g1/scene_29dof.xml"
 simulation_dt: 0.003  # 0.003
 control_decimation: 7

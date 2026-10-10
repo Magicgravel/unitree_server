@@ -1,34 +1,26 @@
 import json
-import threading
 import os
+import threading
+
+import numpy as np
 import yaml
 
-from .g1_loco_server import MotionController
+from .motion import MotionController
 
 from unitree_sdk2py.rpc.server import Server
 from unitree_sdk2py.rpc.internal import (
     RPC_OK,
     RPC_ERR_SERVER_API_PARAMETER,
-    RPC_ERR_SERVER_INTERNAL,
 )
 from unitree_sdk2py.g1.loco.g1_loco_api import (
     LOCO_SERVICE_NAME,
     LOCO_API_VERSION,
-    
     ROBOT_API_ID_LOCO_GET_FSM_ID,
-    ROBOT_API_ID_LOCO_GET_FSM_MODE,
-    ROBOT_API_ID_LOCO_GET_BALANCE_MODE,
-    ROBOT_API_ID_LOCO_GET_SWING_HEIGHT,
-    ROBOT_API_ID_LOCO_GET_STAND_HEIGHT,
-    ROBOT_API_ID_LOCO_GET_PHASE, # deprecated
-    
     ROBOT_API_ID_LOCO_SET_FSM_ID,
-    ROBOT_API_ID_LOCO_SET_BALANCE_MODE,
-    ROBOT_API_ID_LOCO_SET_SWING_HEIGHT,
-    ROBOT_API_ID_LOCO_SET_STAND_HEIGHT,
     ROBOT_API_ID_LOCO_SET_VELOCITY,
     ROBOT_API_ID_LOCO_SET_ARM_TASK,
 )
+
 
 class FSM_ID:
     kInvalid = 0
@@ -45,69 +37,105 @@ class FSM_ID:
     kCpyWalkRun29dofs = 802
     kUserLowcmd = 1000
 
-class LocoServer(Server):
-    def __init__(self):
+
+# Unitree FSM id -> 本地 FSM 状态名 (见 states/__init__.py 中的 mode_list)
+FSM_ID_TO_STATE = {
+    FSM_ID.kInvalid: "zero_torque",
+    FSM_ID.kPassive: "passive",
+    FSM_ID.kSquat: "fixed_pose",
+    FSM_ID.kSit: "fixed_pose",
+    FSM_ID.kFixStand: "fixed_pose",
+    FSM_ID.kOnekeybreak: "fixed_pose",
+    FSM_ID.kLieDownStandUp: "fixed_pose",
+    FSM_ID.kWalkMotion: "loco",
+    FSM_ID.kWalkMotion3dofWaist: "loco",
+    FSM_ID.kHumanMimic2: "loco",
+    FSM_ID.kCpyRun29dofs: "loco",
+    FSM_ID.kCpyWalkRun29dofs: "loco",
+}
+
+
+class G1LocoServer(Server):
+    def __init__(self, sim: bool = False, interface: str = "lo"):
         super().__init__(LOCO_SERVICE_NAME)
 
         self._fsm_id = FSM_ID.kInvalid
-        self._fsm_mode = 0
         self._lock = threading.Lock()
-        
+        self._control_thread = None
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         config_file = os.path.join(current_dir, "config.yaml")
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             print(f"Loading config from {config_file}")
             config = yaml.safe_load(f)
+
+        # 允许通过命令行覆盖配置: --sim / --interface
+        if sim:
+            config["mode"] = "sim"
+        if interface:
+            config["network_interface"] = interface
+
         self._motion_controller = MotionController(config)
 
     def Init(self):
         self._SetApiVersion(LOCO_API_VERSION)
-        self._RegistBinaryHandler(ROBOT_API_ID_LOCO_GET_FSM_ID, self._OnGetFsmId, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_GET_FSM_MODE, self._OnGetFsmMode, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_GET_BALANCE_MODE, self._OnGetBalanceMode, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_GET_SWING_HEIGHT, self._OnGetSwingHeight, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_GET_STAND_HEIGHT, self._OnGetStandHeight, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_GET_PHASE, self._OnGetPhase, False) # deprecated
+        self._RegistHandler(ROBOT_API_ID_LOCO_GET_FSM_ID, self._OnGetFsmId, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_FSM_ID, self._OnSetFsmId, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_SET_BALANCE_MODE, self._OnSetBalanceMode, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_SET_SWING_HEIGHT, self._OnSetSwingHeight, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_SET_STAND_HEIGHT, self._OnSetStandHeight, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_VELOCITY, self._OnSetVelocity, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_ARM_TASK, self._OnSetArmTask, False)
-    
+        self._StartControlLoop()
+
+    def _StartControlLoop(self):
+        """在后台线程运行 50Hz 的 FSM 控制循环."""
+        if self._control_thread is None or not self._control_thread.is_alive():
+            self._control_thread = threading.Thread(
+                target=self._motion_controller.run,
+                name="loco_control",
+                daemon=True,
+            )
+            self._control_thread.start()
+
+    def Stop(self):
+        self._motion_controller.stop()
+
     def _OnGetFsmId(self, parameter):
         return RPC_OK, json.dumps({"fsm_id": self._fsm_id})
 
-    # def _OnGetFsmMode(self, parameter):
-    #     return RPC_OK, json.dumps({"fsm_mode": self._fsm_mode})
-
-    # def _OnGetBalanceMode(self, parameter):
-    #     return RPC_OK, json.dumps({"balance_mode": 0})
-
-    # def _OnGetSwingHeight(self, parameter):
-    #     return RPC_OK, json.dumps({"swing_height": 0})
-
-    # def _OnGetStandHeight(self, parameter):
-    #     return RPC_OK, json.dumps({"stand_height": 0})
-
-    # def _OnGetPhase(self, parameter):
-    #     return RPC_OK, json.dumps({"phase": 0})
-
     def _OnSetFsmId(self, parameter):
-        self._fsm_id = json.loads(parameter).get("fsm_id", FSM_ID.kInvalid)
+        try:
+            p = json.loads(parameter)
+            fsm_id = int(p.get("data", FSM_ID.kInvalid))
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+
+        with self._lock:
+            self._fsm_id = fsm_id
+
+        state_name = FSM_ID_TO_STATE.get(fsm_id)
+        if state_name and state_name in self._motion_controller.fsm_controller.state:
+            self._motion_controller.fsm_controller.change(state_name)
+        else:
+            print(f"[G1LocoServer] unknown fsm_id {fsm_id}, keeping current state")
         return RPC_OK, ""
 
-    # def _OnSetBalanceMode(self, parameter):
-    #     return RPC_OK, ""
-
-    # def _OnSetSwingHeight(self, parameter):
-    #     return RPC_OK, ""
-
-    # def _OnSetStandHeight(self, parameter):
-    #     return RPC_OK, ""
-
     def _OnSetVelocity(self, parameter):
+        try:
+            p = json.loads(parameter)
+            velocity = p.get("velocity", [0.0, 0.0, 0.0])
+            if not isinstance(velocity, (list, tuple)) or len(velocity) < 3:
+                return RPC_ERR_SERVER_API_PARAMETER, ""
+            vel = np.array(velocity[:3], dtype=np.float32)
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+
+        self._motion_controller.state_cmd.vel_cmd = vel
         return RPC_OK, ""
 
     def _OnSetArmTask(self, parameter):
+        try:
+            p = json.loads(parameter)
+            task_id = p.get("data")
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+        print(f"[G1LocoServer] arm task set to {task_id}")
         return RPC_OK, ""

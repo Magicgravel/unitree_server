@@ -17,7 +17,7 @@ from unitree_sdk2py.g1.audio.g1_audio_api import (
     ROBOT_API_ID_AUDIO_SET_VOLUME,
 )
 
-class AudioServer(Server):
+class G1AudioServer(Server):
     def __init__(self):
         super().__init__(AUDIO_SERVICE_NAME)
         self._volume = 80
