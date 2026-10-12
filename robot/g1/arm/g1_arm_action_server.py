@@ -16,25 +16,28 @@ from unitree_sdk2py.g1.arm.g1_arm_action_api import (
     ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION,
 )
 
+from unitree_sdk2py.g1.arm.g1_arm_action_client import action_map as ACTION_MAP
 # G1 上肢 SDK 内置动作名称列表 (与客户端 action_map 保持一致)
-ACTION_LIST = [
-    "release arm",
-    "two-hand kiss",
-    "left kiss",
-    "right kiss",
-    "hands up",
-    "clap",
-    "high five",
-    "hug",
-    "heart",
-    "right heart",
-    "reject",
-    "right hand up",
-    "x-ray",
-    "face wave",
-    "high wave",
-    "shake hand",
-]
+ACTION_LIST = ACTION_MAP.keys()
+
+# action_map = {
+#     "release arm": 99,
+#     "two-hand kiss": 11,
+#     "left kiss": 12,
+#     "right kiss": 13,
+#     "hands up": 15,
+#     "clap": 17,
+#     "high five": 18,
+#     "hug": 19,
+#     "heart": 20,
+#     "right heart": 21,
+#     "reject": 22,
+#     "right hand up": 23,
+#     "x-ray": 24,
+#     "face wave": 25,
+#     "high wave": 26,
+#     "shake hand": 27,
+# }
 
 
 class G1ArmActionServer(Server):

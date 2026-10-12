@@ -18,7 +18,7 @@ from unitree_sdk2py.g1.loco.g1_loco_api import (
     ROBOT_API_ID_LOCO_GET_FSM_ID,
     ROBOT_API_ID_LOCO_SET_FSM_ID,
     ROBOT_API_ID_LOCO_SET_VELOCITY,
-    ROBOT_API_ID_LOCO_SET_ARM_TASK,
+    # ROBOT_API_ID_LOCO_SET_ARM_TASK,
 )
 
 
@@ -82,7 +82,7 @@ class G1LocoServer(Server):
         self._RegistHandler(ROBOT_API_ID_LOCO_GET_FSM_ID, self._OnGetFsmId, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_FSM_ID, self._OnSetFsmId, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_VELOCITY, self._OnSetVelocity, False)
-        self._RegistHandler(ROBOT_API_ID_LOCO_SET_ARM_TASK, self._OnSetArmTask, False)
+        # self._RegistHandler(ROBOT_API_ID_LOCO_SET_ARM_TASK, self._OnSetArmTask, False)
         self._StartControlLoop()
 
     def _StartControlLoop(self):
@@ -131,11 +131,11 @@ class G1LocoServer(Server):
         self._motion_controller.state_cmd.vel_cmd = vel
         return RPC_OK, ""
 
-    def _OnSetArmTask(self, parameter):
-        try:
-            p = json.loads(parameter)
-            task_id = p.get("data")
-        except (ValueError, TypeError, AttributeError):
-            return RPC_ERR_SERVER_API_PARAMETER, ""
-        print(f"[G1LocoServer] arm task set to {task_id}")
-        return RPC_OK, ""
+    # def _OnSetArmTask(self, parameter):
+    #     try:
+    #         p = json.loads(parameter)
+    #         task_id = p.get("data")
+    #     except (ValueError, TypeError, AttributeError):
+    #         return RPC_ERR_SERVER_API_PARAMETER, ""
+    #     print(f"[G1LocoServer] arm task set to {task_id}")
+    #     return RPC_OK, ""

@@ -1,5 +1,12 @@
+Policy Source
+
 - velocity
   - robomimic_deploy: https://github.com/ccrpRepo/RoboMimic_Deploy/tree/master/policy/loco_mode
   - v0: https://github.com/unitreerobotics/unitree_rl_mjlab/tree/main/deploy/robots/g1/config/policy/velocity/v0
   - wbc_fsm_loco: https://github.com/ccrpRepo/wbc_fsm/tree/main/model/loco
+- velocity_12dof
+  - unitree_rl_gym: https://github.com/unitreerobotics/unitree_rl_gym/tree/main/deploy/pre_train/g1
+- velocity_23dof
+  - user_1: unknown
+  - v0: unknown
 - wbc: https://github.com/ccrpRepo/wbc_fsm/tree/main/model/wbc
