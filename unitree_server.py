@@ -45,13 +45,13 @@ def build_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--domain_id", type=int, default=0, help="DDS 域 ID (domain id)"
+        "--domain_id", type=int, default=1, help="DDS 域 ID (domain id)"
     )
     parser.add_argument(
         "--interface", type=str, default="lo", help="连接机器人的网卡名称"
     )
     parser.add_argument(
-        "--sim", action="store_true", help="以仿真模式运行 (不连接实机)"
+        "--sim", action="store_true", help="打开 unitree_mujoco 仿真"
     )
     parser.add_argument(
         "--robot", type=str, default="g1", choices=SUPPORTED_ROBOTS,
@@ -72,11 +72,18 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
 
-    # if args.sim:
-    #     print("[unitree_server] running in simulation mode.")
-    #     # 运行 unitree_mujoco/simulation_python/unitree_mujoco.py
-    #     import subprocess
-    #     subprocess.Popen(["python3", "unitree_mujoco.py"], cwd=UNITREE_MUJOCO_DIR)
+    if args.sim:
+        if not os.path.exists(UNITREE_MUJOCO_DIR):
+            print(f"[unitree_server] simulation directory not found: {UNITREE_MUJOCO_DIR}")
+            print(f"[unitree_server] clone the repository using:")
+            print(f"    git clone https://github.com/UnitreeRobotics/unitree_mujoco.git")
+            print(f"    or")
+            print(f"    git submodule update --init --recursive")
+            return
+        print("[unitree_server] running in simulation mode.")
+        # 运行 unitree_mujoco/simulation_python/unitree_mujoco.py
+        import subprocess
+        subprocess.Popen(["python3", "unitree_mujoco.py"], cwd=UNITREE_MUJOCO_DIR)
 
     # 初始化 DDS 通道 (domain id + 网卡)
     ChannelFactoryInitialize(args.domain_id, args.interface)
@@ -86,7 +93,7 @@ def main():
 
     if args.robot == "g1":
         if args.loco:
-            loco_server = G1LocoServer(sim=args.sim, interface=args.interface)
+            loco_server = G1LocoServer()
             loco_server.Init()
             loco_server.Start()
             servers.append(loco_server)

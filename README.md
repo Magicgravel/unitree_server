@@ -1,10 +1,14 @@
 # unitree_server
 
-Unitree 机器人服务端：对外提供 RPC 服务，把 `unitree_sdk` 的高层接口调用转发到 **unitree_mujoco（仿真）** 或 **unitree_robot（实机）**。
+Unitree 机器人服务端：对外提供 RPC 服务，把 `unitree_sdk2` 的高层接口调用转发到 `unitree_mujoco`。
 
 ```
 unitree_sdk(提供高层接口，客户端调用) <---> unitree_server(模拟PC1服务端，处理接口调用) <---> unitree_mujoco(机器人仿真) 或 unitree_robot(实机)
 ```
+
+支持：Unitree G1
+
+计划支持：Unitree Go2、Unitree R1
 
 ## 功能
 
@@ -12,7 +16,7 @@ unitree_sdk(提供高层接口，客户端调用) <---> unitree_server(模拟PC1
 |------|------|------|
 | 运动控制 (`--loco`) | `G1LocoServer` | 基于 FSM + 运动策略（ONNX）的全身运动控制 |
 | 语音播放 (`--audio`) | `G1AudioServer` | 接收 PCM 音频流并播放（音量控制 / 停止播放） |
-| 上肢动作 (`--arm`) | `G1ArmActionServer` | 执行内置 / 自定义上肢动作，获取动作列表 |
+| （开发中）上肢动作 (`--arm`) | `G1ArmActionServer` | 执行内置 / 自定义上肢动作，获取动作列表 |
 
 ## 目录结构
 
@@ -34,28 +38,24 @@ unitree_server/
 └── unitree_mujoco/              # 仿真子模块 (git submodule)
 ```
 
-## 环境依赖
-
-- Python >= 3.9（开发环境为 3.10）
-- [unitree_sdk2_python](https://github.com/unitreerobotics/unitree_sdk2_python)（需加入 `PYTHONPATH` 或安装到 site-packages）
-- `mujoco`、`numpy`、`PyYAML`、`onnxruntime`（运动策略推理）
-- `pygame`（仿真可视化）
-- `psutil`（`example/t_g1_record.py` 用）
-
-```bash
-pip install mujoco numpy pyyaml onnxruntime pygame psutil
-```
-
 ## 安装
 
 ```bash
 # 1. 克隆仓库并拉取仿真子模块
-git clone <this-repo> unitree_server
+git clone https://github.com/Magicgravel/unitree_server.git
 cd unitree_server
 git submodule update --init --recursive
 
-# 2. 确保 unitree_sdk2_python 可被导入
-export PYTHONPATH=$PYTHONPATH:/path/to/unitree_sdk2_python
+# 2. 配置虚拟环境
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. 安装 unitree_sdk2py
+git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
+pip install -e unitree_sdk2_python
+# 若安装遇到报错请看：
+# https://support.unitree.com/home/zh/developer/Python#heading-5
 ```
 
 ## 快速开始
@@ -73,9 +73,6 @@ python3 unitree_server.py --loco --interface eth0
 python3 unitree_server.py --audio
 ```
 
-> 运动控制默认读取 `robot/g1/loco/config.yaml`；`--sim` 会强制 `mode: sim`，
-> `--interface` 会覆盖 `network_interface`。
-
 ### 2. 命令行参数
 
 | 参数 | 默认值 | 说明 |
@@ -89,6 +86,8 @@ python3 unitree_server.py --audio
 | `--arm` | OFF | 启动上肢动作服务 |
 
 ### 3. 客户端示例
+
+客户端是用 unitree_sdk2 通过 `network_interface=lo, domain_id=1` 连接到 unitree_server
 
 ```bash
 # G1 的 LocoClient、AudioClient、G1ArmActionClient 接口综合测试
@@ -126,6 +125,6 @@ python3 example/t_g1_record.py
 
 ## 注意事项
 
-- `G1LocoServer` 会等待 `rt/lowstate` 数据到达后才继续，请确保网卡与机器人连通。
+- `G1LocoServer` 会等待 `rt/lowstate` 数据到达后才继续，请确保 打开unitree_mujoco仿真 或 网卡与机器人连通。
 - 语音播放使用系统 `aplay` 播放 16kHz 单声道 S16_LE PCM，需安装 `alsa-utils`。
 - 仿真模式会打开 MuJoCo viewer 窗口，退出 viewer 或 `Ctrl+C` 可停止服务。

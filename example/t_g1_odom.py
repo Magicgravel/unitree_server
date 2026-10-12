@@ -34,7 +34,7 @@ def msg_handler(msg: SportModeState_):
     print("z: ", estimator_state.imu_state.quaternion[3])
 
 if __name__ == '__main__':
-    ChannelFactoryInitialize(0, sys.argv[1])  # 改为您用的设备连接机器人的网口名称
+    ChannelFactoryInitialize(1, sys.argv[1])  # 改为您用的设备连接机器人的网口名称
     
     suber = ChannelSubscriber(TOPIC, SportModeState_)
     suber.Init(msg_handler, 10)

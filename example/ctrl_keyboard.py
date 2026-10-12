@@ -37,9 +37,9 @@ import tty
 #     sys.path.insert(0, str(SDK_ROOT))
 
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize
-# from unitree_sdk2py.g1.loco.g1_loco_client import LocoClient as SportClient
+from unitree_sdk2py.g1.loco.g1_loco_client import LocoClient as SportClient
 # from unitree_sdk2py.h2.loco.h2_loco_client import LocoClient as SportClient
-from unitree_sdk2py.go2.sport.sport_client import SportClient
+# from unitree_sdk2py.go2.sport.sport_client import SportClient
 # from unitree_sdk2py.b2.sport.sport_client import SportClient 
 # from unitree_sdk2py.a2.sport.sport_client import SportClient
 
@@ -130,7 +130,7 @@ def main():
         print("This script requires a TTY terminal.")
         sys.exit(1)
 
-    ChannelFactoryInitialize(0, sys.argv[1])
+    ChannelFactoryInitialize(1, sys.argv[1])
 
     sport_client = SportClient()
     sport_client.SetTimeout(5.0)

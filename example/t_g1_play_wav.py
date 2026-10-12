@@ -7,7 +7,7 @@ if __name__ == "__main__":
     net_interface = sys.argv[1]
     wav_path = sys.argv[2]
 
-    ChannelFactoryInitialize(0, net_interface)
+    ChannelFactoryInitialize(1, net_interface)
     audioClient = AudioClient()
     audioClient.SetTimeout(10.0)
     audioClient.Init()
