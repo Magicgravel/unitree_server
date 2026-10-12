@@ -81,6 +81,7 @@ python3 unitree_server.py --audio
 | `--interface` | `lo` | 连接机器人的网卡名称 |
 | `--sim` | OFF | 运行 unitree_mujoco 仿真 |
 | `--robot` | `g1` | 机器人型号 |
+| `--joystick` | 0 | 是否使用模拟手柄 |
 | `--loco` | OFF | 启动运动控制服务 |
 | `--audio` | OFF | 启动语音播放服务 |
 | `--arm` | OFF | 启动上肢动作服务 |

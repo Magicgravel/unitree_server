@@ -58,6 +58,9 @@ def build_parser():
         help="机器人型号",
     )
     parser.add_argument(
+        "--joystick", type=int, default=0, help="是否使用模拟手柄"
+    )
+    parser.add_argument(
         "--loco", action="store_true", help="启动运动控制服务"
     )
     parser.add_argument(
@@ -81,6 +84,24 @@ def main():
             print(f"    git submodule update --init --recursive")
             return
         print("[unitree_server] running in simulation mode.")
+        
+        # 修改 unitree_mujoco/simulate_python/config.py 中的 ROBOT，USE_JOYSTICK 字段
+        config_path = os.path.join(UNITREE_MUJOCO_DIR, "config.py")
+        with open(config_path, "r") as f:
+            config_lines = f.readlines()
+        with open(config_path, "w") as f:
+            for line in config_lines:
+                if line.startswith("ROBOT ="):
+                    f.write(f"ROBOT = '{args.robot}'\n")
+                elif line.startswith("DOMAIN_ID ="):
+                    f.write(f"DOMAIN_ID = {args.domain_id}\n")
+                elif line.startswith("INTERFACE ="):
+                    f.write(f"INTERFACE = '{args.interface}'\n")
+                elif line.startswith("USE_JOYSTICK ="):
+                    f.write(f"USE_JOYSTICK = {args.joystick}\n")
+                else:
+                    f.write(line)
+        
         # 运行 unitree_mujoco/simulation_python/unitree_mujoco.py
         import subprocess
         subprocess.Popen(["python3", "unitree_mujoco.py"], cwd=UNITREE_MUJOCO_DIR)
