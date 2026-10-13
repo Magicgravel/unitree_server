@@ -1,4 +1,4 @@
-Policy Source
+G1 Policy Source
 
 - velocity
   - robomimic_deploy: https://github.com/ccrpRepo/RoboMimic_Deploy/tree/master/policy/loco_mode

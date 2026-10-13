@@ -20,6 +20,8 @@ from unitree_sdk2py.g1.loco.g1_loco_api import (
     ROBOT_API_ID_LOCO_SET_VELOCITY,
     # ROBOT_API_ID_LOCO_SET_ARM_TASK,
 )
+ROBOT_API_ID_LOCO_SWITCH_TO_USER_CTRL = 7110
+ROBOT_API_ID_LOCO_SWITCH_TO_INTERNAL_CTRL = 7111
 
 
 class FSM_ID:
@@ -83,6 +85,8 @@ class G1LocoServer(Server):
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_FSM_ID, self._OnSetFsmId, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_VELOCITY, self._OnSetVelocity, False)
         # self._RegistHandler(ROBOT_API_ID_LOCO_SET_ARM_TASK, self._OnSetArmTask, False)
+        # self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_USER_CTRL, self._OnSwitchToUserCtrl, False)
+        # self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_INTERNAL_CTRL, self._OnSwitchToInternalCtrl, False)
         self._StartControlLoop()
 
     def _StartControlLoop(self):
@@ -138,4 +142,24 @@ class G1LocoServer(Server):
     #     except (ValueError, TypeError, AttributeError):
     #         return RPC_ERR_SERVER_API_PARAMETER, ""
     #     print(f"[G1LocoServer] arm task set to {task_id}")
+    #     return RPC_OK, ""
+
+    # def _OnSwitchToUserCtrl(self, parameter):
+    #     try:
+    #         p = json.loads(parameter)
+    #     except (ValueError, TypeError, AttributeError):
+    #         return RPC_ERR_SERVER_API_PARAMETER, ""
+
+    #     print("[G1LocoServer] switching to user control")
+    #     self._motion_controller.switch_to_user_ctrl()
+    #     return RPC_OK, ""
+
+    # def _OnSwitchToInternalCtrl(self, parameter):
+    #     try:
+    #         p = json.loads(parameter)
+    #     except (ValueError, TypeError, AttributeError):
+    #         return RPC_ERR_SERVER_API_PARAMETER, ""
+
+    #     print("[G1LocoServer] switching to internal control")
+    #     self._motion_controller.switch_to_internal_ctrl()
     #     return RPC_OK, ""

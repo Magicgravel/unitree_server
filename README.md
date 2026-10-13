@@ -14,7 +14,7 @@ unitree_sdk(提供高层接口，客户端调用) <---> unitree_server(模拟PC1
 
 | G1 服务 | 模块 | 说明 |
 |------|------|------|
-| 运动控制 (`--loco`) | `G1LocoServer` | 基于 FSM + 运动策略（ONNX）的全身运动控制 |
+| 运动控制 (`--loco`) | `G1LocoServer` | 基于 FSM + 运动策略（ONNX）的全身运动控制，[策略来源](robot/g1/loco/policy/README.md) |
 | 语音播放 (`--audio`) | `G1AudioServer` | 接收 PCM 音频流并播放（音量控制 / 停止播放） |
 | (开发中) 上肢动作 (`--arm`) | `G1ArmActionServer` | 执行内置 / 自定义上肢动作，获取动作列表 |
 
@@ -130,6 +130,9 @@ python3 example/t_g1_record.py
       - 锁定站立：4
       - 运控模式：500，501，801，802
     - `SetVelocity`：设置前进 / 横移 / 转向速度
+    - `SetArmTask`：设置手臂任务（开发中）
+    - `SwitchToUserCtrl`：切换到用户模式（开发中）
+    - `SwitchToInternalCtrl`：切换到内部运控（开发中）
   - **语音** (`service: "audio"`)
     - `PlayStream`：流式播放 PCM 数据
     - `PlayStop` / `GetVolume` / `SetVolume`

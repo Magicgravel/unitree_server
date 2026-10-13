@@ -12,14 +12,14 @@ from unitree_sdk2py.g1.arm.g1_arm_action_api import (
 
     ROBOT_API_ID_ARM_ACTION_EXECUTE_ACTION,
     ROBOT_API_ID_ARM_ACTION_GET_ACTION_LIST,
-    ROBOT_API_ID_ARM_ACTION_EXECUTE_CUSTOM_ACTION,
-    ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION,
+    # ROBOT_API_ID_ARM_ACTION_EXECUTE_CUSTOM_ACTION,
+    # ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION,
 )
+# 这两个 API ID 在 unitree_sdk2_python 中暂未定义, 因此在这里手动定义
+ROBOT_API_ID_ARM_ACTION_EXECUTE_CUSTOM_ACTION = 7108
+ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION = 7109
 
-from unitree_sdk2py.g1.arm.g1_arm_action_client import action_map as ACTION_MAP
-# G1 上肢 SDK 内置动作名称列表 (与客户端 action_map 保持一致)
-ACTION_LIST = ACTION_MAP.keys()
-
+from unitree_sdk2py.g1.arm.g1_arm_action_client import action_map
 # action_map = {
 #     "release arm": 99,
 #     "two-hand kiss": 11,
@@ -69,7 +69,7 @@ class G1ArmActionServer(Server):
         return RPC_OK, ""
 
     def _OnGetActionList(self, parameter):
-        return RPC_OK, json.dumps(ACTION_LIST)
+        return RPC_OK, json.dumps(action_map)
 
     def _OnExecuteCustomAction(self, parameter):
         try:
