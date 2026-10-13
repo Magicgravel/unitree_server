@@ -58,7 +58,7 @@ def build_parser():
         help="机器人型号",
     )
     parser.add_argument(
-        "--joystick", type=int, default=0, help="是否使用模拟手柄"
+        "--joystick", action="store_true", default=False, help="启动使用游戏手柄模拟R3"
     )
     parser.add_argument(
         "--loco", action="store_true", help="启动运动控制服务"

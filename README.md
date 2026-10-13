@@ -64,6 +64,9 @@ git clone https://github.com/unitreerobotics/unitree_sdk2_python.git
 pip install -e unitree_sdk2_python
 # 若安装遇到报错请看：
 # https://support.unitree.com/home/zh/developer/Python#heading-5
+
+# 4. 修复 unitree_sdk2_python 代码Bug，22行处
+sed -i 's/^\(\s*\)self\.__apiBinarySet = {}\s*$/\1self.__apiBinarySet = set()/' unitree_sdk2py/rpc/server.py
 ```
 
 ## 快速开始
@@ -90,7 +93,7 @@ python3 unitree_server.py --audio
 | `--interface` | `lo` | 连接机器人的网卡名称 |
 | `--sim` | OFF | 运行 unitree_mujoco 仿真 |
 | `--robot` | `g1` | 机器人型号 |
-| `--joystick` | 0 | 是否使用模拟手柄 |
+| `--joystick` | OFF | 启动使用游戏手柄模拟R3 |
 | `--loco` | OFF | 启动运动控制服务 |
 | `--audio` | OFF | 启动语音播放服务 |
 | `--arm` | OFF | 启动上肢动作服务 |
