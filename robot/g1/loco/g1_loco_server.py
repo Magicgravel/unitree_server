@@ -54,6 +54,7 @@ FSM_ID_TO_STATE = {
     FSM_ID.kHumanMimic2: "loco",
     FSM_ID.kCpyRun29dofs: "loco",
     FSM_ID.kCpyWalkRun29dofs: "loco",
+    FSM_ID.kUserLowcmd: "user_ctrl_mode",
 }
 
 
@@ -62,6 +63,7 @@ class G1LocoServer(Server):
         super().__init__(LOCO_SERVICE_NAME)
 
         self._fsm_id = FSM_ID.kInvalid
+        self._last_fsm_id = FSM_ID.kInvalid
         self._lock = threading.Lock()
         self._control_thread = None
 
@@ -85,8 +87,8 @@ class G1LocoServer(Server):
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_FSM_ID, self._OnSetFsmId, False)
         self._RegistHandler(ROBOT_API_ID_LOCO_SET_VELOCITY, self._OnSetVelocity, False)
         # self._RegistHandler(ROBOT_API_ID_LOCO_SET_ARM_TASK, self._OnSetArmTask, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_USER_CTRL, self._OnSwitchToUserCtrl, False)
-        # self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_INTERNAL_CTRL, self._OnSwitchToInternalCtrl, False)
+        self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_USER_CTRL, self._OnSwitchToUserCtrl, False)
+        self._RegistHandler(ROBOT_API_ID_LOCO_SWITCH_TO_INTERNAL_CTRL, self._OnSwitchToInternalCtrl, False)
         self._StartControlLoop()
 
     def _StartControlLoop(self):
@@ -113,6 +115,7 @@ class G1LocoServer(Server):
             return RPC_ERR_SERVER_API_PARAMETER, ""
 
         with self._lock:
+            self._last_fsm_id = self._fsm_id
             self._fsm_id = fsm_id
 
         state_name = FSM_ID_TO_STATE.get(fsm_id)
@@ -144,22 +147,44 @@ class G1LocoServer(Server):
     #     print(f"[G1LocoServer] arm task set to {task_id}")
     #     return RPC_OK, ""
 
-    # def _OnSwitchToUserCtrl(self, parameter):
-    #     try:
-    #         p = json.loads(parameter)
-    #     except (ValueError, TypeError, AttributeError):
-    #         return RPC_ERR_SERVER_API_PARAMETER, ""
+    def _OnSwitchToUserCtrl(self, parameter):
+        if self._fsm_id not in [
+            FSM_ID.kPassive,
+            FSM_ID.kCpyRun29dofs,
+            FSM_ID.kCpyWalkRun29dofs,
+        ]:
+            print(f"[G1LocoServer] cannot switch to user control from fsm_id {self._fsm_id}")
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+        
+        print("[G1LocoServer] switching to user control")
+        state_name = FSM_ID_TO_STATE.get(FSM_ID.kUserLowcmd)
+        if state_name and state_name in self._motion_controller.fsm_controller.state:
+            self._motion_controller.fsm_controller.change(state_name)
+        return RPC_OK, ""
 
-    #     print("[G1LocoServer] switching to user control")
-    #     self._motion_controller.switch_to_user_ctrl()
-    #     return RPC_OK, ""
+    def _OnSwitchToInternalCtrl(self, parameter):
+        class G1InternalFsmMode:
+            LAST = 0    # 切换至用户开发模式前的运控模式
+            PASSIVE = 1 # 阻尼模式
+            WALKRUN = 2 # 走跑模式
+        
+        try:
+            p = json.loads(parameter)
+            mode = int(p.get("data", G1InternalFsmMode.LAST))
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
 
-    # def _OnSwitchToInternalCtrl(self, parameter):
-    #     try:
-    #         p = json.loads(parameter)
-    #     except (ValueError, TypeError, AttributeError):
-    #         return RPC_ERR_SERVER_API_PARAMETER, ""
-
-    #     print("[G1LocoServer] switching to internal control")
-    #     self._motion_controller.switch_to_internal_ctrl()
-    #     return RPC_OK, ""
+        if mode == G1InternalFsmMode.LAST:
+            fsm_id = self._last_fsm_id
+        elif mode == G1InternalFsmMode.PASSIVE:
+            fsm_id = FSM_ID.kPassive
+        elif mode == G1InternalFsmMode.WALKRUN:
+            fsm_id = FSM_ID.kCpyWalkRun29dofs
+        else:
+            print("[G1LocoServer] invalid internal FSM mode")
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+        
+        print(f"[G1LocoServer] switching to internal control, fsm_id={fsm_id}")
+        return self._OnSetFsmId(
+            json.dumps({"data": fsm_id})
+        )

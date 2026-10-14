@@ -1,6 +1,7 @@
 """
 Joystick DSL (Domain Specific Language) for Unitree Robotics Joystick
-(Python port of unitree_joystick_dsl.hpp)
+(Python port of unitree_joystick_dsl.hpp, plus the joystick state-management
+features from unitree_joystick.hpp: KeyBase/Button/Axis, extract/combine)
 
 This DSL allows users to define complex joystick button combinations and
 interactions in a human-readable format. It supports logical expressions
@@ -60,6 +61,8 @@ Example expressions:
 
 from __future__ import annotations
 
+import struct
+import time
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Callable, Dict
@@ -70,45 +73,275 @@ from typing import Callable, Dict
 class KeyBase:
     """State of a single joystick key (mirrors the C++ ``KeyBase``).
 
-    ``pressed``, ``on_pressed``, ``on_released`` and ``pressed_time`` are
-    expected to be maintained by the caller (e.g. from the joystick driver).
+    Call :meth:`update` with the raw pressed flag to maintain ``pressed``,
+    ``on_pressed``, ``on_released``, ``click_cnt`` and ``pressed_time``.
     """
 
-    __slots__ = ("pressed", "on_pressed", "on_released", "pressed_time")
+    __slots__ = (
+        "pressed",
+        "on_pressed",
+        "on_released",
+        "click_cnt",
+        "pressed_time",
+        "_last_pressed",
+        "_last_click_time",
+        "_double_click_threshold",
+    )
 
     def __init__(self) -> None:
         self.pressed: bool = False
         self.on_pressed: bool = False
         self.on_released: bool = False
+        self.click_cnt: int = 0
         self.pressed_time: float = 0.0
+        self._last_pressed: bool = False
+        self._last_click_time: float = 0.0
+        self._double_click_threshold: float = 0.5  # seconds
+
+    def update(self, is_pressed: bool) -> None:
+        """Update the key state from the raw pressed flag.
+
+        Mirrors the C++ ``KeyBase::update``: computes edge triggers, the
+        click count (double-click threshold) and the hold duration.
+        """
+        self.pressed = bool(is_pressed)
+        self.on_pressed = self.pressed and not self._last_pressed
+        self.on_released = (not self.pressed) and self._last_pressed
+        self._last_pressed = self.pressed
+
+        now = time.monotonic()
+        if self.on_pressed:
+            if now - self._last_click_time < self._double_click_threshold:
+                self.click_cnt += 1
+            else:
+                self.click_cnt = 1
+            self._last_click_time = now
+
+        if self.pressed:
+            self.pressed_time = now - self._last_click_time
+        if not (self.pressed or self.on_released):
+            self.pressed_time = 0.0
+
+
+class Button(KeyBase):
+    """Digital button holding a raw value (mirrors the C++ ``Button<T>``).
+
+    ``update(data)`` marks the button pressed whenever ``data`` differs from
+    ``null_value``; the latest raw value is kept in :attr:`data`.
+    """
+
+    def __init__(self, null_value: int = 0) -> None:
+        super().__init__()
+        self.data = null_value
+        self._null_value = null_value
+
+    def update(self, data) -> None:
+        super().update(data != self._null_value)
+        self.data = data
+
+
+class Axis(KeyBase):
+    """Analog axis with deadzone and smoothing (mirrors the C++ ``Axis``).
+
+    ``update(data)`` applies deadzone + exponential smoothing and marks the
+    axis pressed when the smoothed value exceeds ``threshold``.
+    """
+
+    def __init__(
+        self, threshold: float = 0.5, smooth: float = 0.03, deadzone: float = 0.01
+    ) -> None:
+        super().__init__()
+        self.threshold = threshold
+        self.smooth = smooth
+        self.deadzone = deadzone
+        self.data = 0.0
+
+    def update(self, data) -> None:
+        data = float(data)
+        data_deadzone = 0.0 if abs(data) < self.deadzone else data
+        new_data = self.data * (1.0 - self.smooth) + data_deadzone * self.smooth
+        super().update(new_data > self.threshold)
+        self.data = new_data
+
+
+# ======================== Raw Data Types (mirrors unitree_joystick.hpp) ========================
+
+class BtnUnion:
+    """16-bit button bitfield, LSB-first (mirrors the C++ ``BtnUnion``).
+
+    Individual components are accessed by name (``btn.A``, ``btn.Start`` ...);
+    ``value`` holds the packed 16-bit word.
+    """
+
+    _FIELDS = (
+        "R1", "L1", "Start", "Select", "R2", "L2", "f1", "f2",
+        "A", "B", "X", "Y", "up", "right", "down", "left",
+    )
+    __slots__ = ("value",)
+
+    def __init__(self, value: int = 0) -> None:
+        self.value = int(value) & 0xFFFF
+
+    def __getattr__(self, name: str) -> int:
+        if name in BtnUnion._FIELDS:
+            return (self.value >> BtnUnion._FIELDS.index(name)) & 1
+        raise AttributeError("'BtnUnion' object has no attribute %r" % name)
+
+    def __setattr__(self, name: str, val) -> None:
+        if name == "value":
+            object.__setattr__(self, "value", int(val) & 0xFFFF)
+            return
+        if name in BtnUnion._FIELDS:
+            bit = BtnUnion._FIELDS.index(name)
+            if val:
+                self.value |= 1 << bit
+            else:
+                self.value &= ~(1 << bit)
+            return
+        object.__setattr__(self, name, val)
+
+
+class BtnDataStruct:
+    """Raw joystick payload (mirrors the C++ ``BtnDataStruct``)."""
+
+    __slots__ = ("head", "btn", "lx", "rx", "ry", "L2", "ly")
+
+    def __init__(self) -> None:
+        self.head = [0, 0]
+        self.btn = BtnUnion()
+        self.lx = 0.0
+        self.rx = 0.0
+        self.ry = 0.0
+        self.L2 = 0.0
+        self.ly = 0.0
+
+
+class REMOTE_DATA_RX:
+    """Union view of raw joystick data (mirrors the C++ ``REMOTE_DATA_RX``).
+
+    ``RF_RX`` exposes the parsed fields; ``buff`` round-trips the raw buffer
+    (little-endian native layout: 2B head + 2B buttons + 5 floats, padded to
+    ``BUFF_SIZE`` bytes).
+    """
+
+    _PACKED_SIZE = 24  # head[2] + btn[2] + lx/rx/ry/L2/ly[5*4]
+    BUFF_SIZE = 40
+
+    def __init__(self) -> None:
+        self.RF_RX = BtnDataStruct()
+
+    @property
+    def buff(self) -> bytes:
+        d = self.RF_RX
+        packed = struct.pack(
+            "<2BH5f",
+            d.head[0], d.head[1], d.btn.value,
+            d.lx, d.rx, d.ry, d.L2, d.ly,
+        )
+        return packed + b"\x00" * (self.BUFF_SIZE - self._PACKED_SIZE)
+
+    @buff.setter
+    def buff(self, raw) -> None:
+        raw = bytes(raw)
+        if len(raw) < self._PACKED_SIZE:
+            raise ValueError(
+                "Buffer too short: expected >= %d bytes, got %d"
+                % (self._PACKED_SIZE, len(raw))
+            )
+        head0, head1, btnval, lx, rx, ry, L2, ly = struct.unpack(
+            "<2BH5f", raw[: self._PACKED_SIZE]
+        )
+        d = self.RF_RX
+        d.head = [head0, head1]
+        d.btn.value = btnval
+        d.lx, d.rx, d.ry, d.L2, d.ly = lx, rx, ry, L2, ly
 
 
 class UnitreeJoystick:
-    """Joystick state container holding every key supported by the DSL."""
+    """Joystick state container holding every key supported by the DSL.
+
+    Digital buttons are :class:`Button` instances, analog axes are
+    :class:`Axis` instances. Feed raw data with :meth:`extract`, then read the
+    maintained state (``pressed``/``on_pressed``/``pressed_time`` ...) or use
+    :func:`compile_dsl`.
+    """
 
     def __init__(self) -> None:
-        self.back = KeyBase()
-        self.start = KeyBase()
-        self.LS = KeyBase()
-        self.RS = KeyBase()
-        self.LB = KeyBase()
-        self.RB = KeyBase()
-        self.A = KeyBase()
-        self.B = KeyBase()
-        self.X = KeyBase()
-        self.Y = KeyBase()
-        self.up = KeyBase()
-        self.down = KeyBase()
-        self.left = KeyBase()
-        self.right = KeyBase()
-        self.F1 = KeyBase()
-        self.F2 = KeyBase()
-        self.lx = KeyBase()
-        self.ly = KeyBase()
-        self.rx = KeyBase()
-        self.ry = KeyBase()
-        self.LT = KeyBase()
-        self.RT = KeyBase()
+        self.back = Button()
+        self.start = Button()
+        self.LS = Button()
+        self.RS = Button()
+        self.LB = Button()
+        self.RB = Button()
+        self.A = Button()
+        self.B = Button()
+        self.X = Button()
+        self.Y = Button()
+        self.up = Button()
+        self.down = Button()
+        self.left = Button()
+        self.right = Button()
+        self.F1 = Button()
+        self.F2 = Button()
+        self.lx = Axis()
+        self.ly = Axis()
+        self.rx = Axis()
+        self.ry = Axis()
+        self.LT = Axis()
+        self.RT = Axis()
+
+    def update(self) -> None:
+        """Hook for subclasses to refresh state (no-op, mirrors C++ ``update``)."""
+
+    def extract(self, key: "REMOTE_DATA_RX") -> None:
+        """Update every key from a raw :class:`REMOTE_DATA_RX` payload."""
+        btn = key.RF_RX.btn
+        self.back.update(btn.Select)
+        self.start.update(btn.Start)
+        self.LB.update(btn.L1)
+        self.RB.update(btn.R1)
+        self.F1.update(btn.f1)
+        self.F2.update(btn.f2)
+        self.A.update(btn.A)
+        self.B.update(btn.B)
+        self.X.update(btn.X)
+        self.Y.update(btn.Y)
+        self.up.update(btn.up)
+        self.down.update(btn.down)
+        self.left.update(btn.left)
+        self.right.update(btn.right)
+        self.LT.update(btn.L2)
+        self.RT.update(btn.R2)
+        self.lx.update(key.RF_RX.lx)
+        self.ly.update(key.RF_RX.ly)
+        self.rx.update(key.RF_RX.rx)
+        self.ry.update(key.RF_RX.ry)
+
+    def combine(self) -> "REMOTE_DATA_RX":
+        """Serialize the current key state back into a :class:`REMOTE_DATA_RX`."""
+        key = REMOTE_DATA_RX()
+        btn = key.RF_RX.btn
+        btn.Select = self.back.data
+        btn.Start = self.start.data
+        btn.L1 = self.LB.data
+        btn.R1 = self.RB.data
+        btn.f1 = self.F1.data
+        btn.f2 = self.F2.data
+        btn.A = self.A.data
+        btn.B = self.B.data
+        btn.X = self.X.data
+        btn.Y = self.Y.data
+        btn.up = self.up.data
+        btn.down = self.down.data
+        btn.left = self.left.data
+        btn.right = self.right.data
+        btn.L2 = 1 if self.LT.data > 0.5 else 0
+        btn.R2 = 1 if self.RT.data > 0.5 else 0
+        key.RF_RX.lx = self.lx.data
+        key.RF_RX.ly = self.ly.data
+        key.RF_RX.rx = self.rx.data
+        key.RF_RX.ry = self.ry.data
+        return key
 
 
 # Lowercase DSL key name -> attribute name on the joystick object.
@@ -439,3 +672,19 @@ if __name__ == "__main__":
 
     for expr in expressions:
         print(f"{expr!r:45} -> {compile_dsl(expr)(joy)}")
+
+    # --- Driver demo: extract() from a raw payload, then combine() back ---
+    raw = REMOTE_DATA_RX()
+    raw.RF_RX.btn.A = 1
+    raw.RF_RX.btn.Start = 1
+    raw.RF_RX.lx = 0.9
+    raw.RF_RX.ly = -0.9
+    joy2 = UnitreeJoystick()
+    joy2.extract(raw)
+    print()
+    print("A pressed:", joy2.A.pressed, "| A on_pressed:", joy2.A.on_pressed)
+    print("Start pressed:", joy2.start.pressed)
+    print("lx.data:", round(joy2.lx.data, 4))
+
+    out = joy2.combine()
+    print("combine A:", out.RF_RX.btn.A, "| buff size:", len(out.buff))

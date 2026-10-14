@@ -25,13 +25,14 @@ class UserCtrlMode(FSMState):
         self.user_lowcmd = msg
     
     def enter(self):
-        pass
+        self.user_lowcmd = None
         
     def run(self):
-        for j, motor_idx in enumerate(self.joint2motor_idx):
-            self.policy_output.actions[motor_idx] = self.user_lowcmd.motor_cmd[j] if self.user_lowcmd else 0.0
-            self.policy_output.kps[motor_idx] = self.user_lowcmd.kps[j] if self.user_lowcmd else 0.0
-            self.policy_output.kds[motor_idx] = self.user_lowcmd.kds[j] if self.user_lowcmd else 0.0
+        if self.user_lowcmd is not None:
+            for motor_idx in range(len(self.user_lowcmd.motor_cmd)):
+                self.policy_output.actions[motor_idx] = self.user_lowcmd.motor_cmd[motor_idx].q
+                self.policy_output.kps[motor_idx] = self.user_lowcmd.motor_cmd[motor_idx].kp
+                self.policy_output.kds[motor_idx] = self.user_lowcmd.motor_cmd[motor_idx].kd
     
     def exit(self):
-        pass
+        self.user_lowcmd = None

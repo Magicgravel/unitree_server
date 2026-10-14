@@ -134,8 +134,8 @@ python3 example/t_g1_record.py
       - 运控模式：500，501，801，802
     - `SetVelocity`：设置前进 / 横移 / 转向速度
     - `SetArmTask`：设置手臂任务（开发中）
-    - `SwitchToUserCtrl`：切换到用户模式（开发中）
-    - `SwitchToInternalCtrl`：切换到内部运控（开发中）
+    - `SwitchToUserCtrl`：切换到用户模式
+    - `SwitchToInternalCtrl`：切换到内部运控
   - **语音** (`service: "audio"`)
     - `PlayStream`：流式播放 PCM 数据
     - `PlayStop` / `GetVolume` / `SetVolume`

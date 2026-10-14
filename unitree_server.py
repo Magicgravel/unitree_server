@@ -28,6 +28,7 @@ import os
 import signal
 import threading
 
+from robot.g1.wireless_controller.wireless_controller_server import G1WirelessControllerServer
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize
 
 from robot.g1.loco.g1_loco_server import G1LocoServer
@@ -124,13 +125,22 @@ def main():
             audio_server.Init()
             audio_server.Start()
             servers.append(audio_server)
-            print("[G1AudioServer] started, waiting for PlayStream requests...")
+            print("[G1AudioServer] started, waiting for audio commands...")
         if args.arm:
             arm_server = G1ArmActionServer()
             arm_server.Init()
             arm_server.Start()
             servers.append(arm_server)
             print("[G1ArmActionServer] started, waiting for arm commands...")
+        if args.joystick:
+            wireless_controller_server = G1WirelessControllerServer(
+                loco_server=loco_server if args.loco else None,
+                audio_server=audio_server if args.audio else None,
+                arm_action_server=arm_server if args.arm else None,
+            )
+            wireless_controller_server.Start()
+            servers.append(wireless_controller_server)
+            print("[G1WirelessControllerServer] started, waiting for wireless controller commands...")
 
     def handle_signal(signum, _frame):
         print(f"\n[unitree_server] received signal {signum}, shutting down...")
