@@ -10,13 +10,6 @@ from .unitree_joystick import (
     REMOTE_DATA_RX,
 )
 
-# key_mapping example
-# key_mapping = {
-#     "LT(2s) + B": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kPassive})),
-#     "up.on_pressed": lambda: self.audio_server._OnSetVolume(10),
-#     "down.on_pressed": lambda: self.audio_server._OnSetVolume(-10),
-# }
-
 TOPIC_LOWSTATE = "rt/lowstate"
 
 class WirelessController:
@@ -42,7 +35,7 @@ class WirelessController:
         # 更新 UnitreeJoystick 的状态
         self.raw = REMOTE_DATA_RX()
         # 把 self.lowstate 的无线遥控器数据提取到 raw 中
-        self.raw.RF_RX.btn.value = self.lowstate.wireless_remote[2]
+        self.raw.RF_RX.btn.value = struct.unpack("I", self.lowstate.wireless_remote[2:6])[0]
         self.raw.RF_RX.lx = struct.unpack("f", self.lowstate.wireless_remote[4:8])[0]
         self.raw.RF_RX.ly = struct.unpack("f", self.lowstate.wireless_remote[20:24])[0]
         self.raw.RF_RX.rx = struct.unpack("f", self.lowstate.wireless_remote[8:12])[0]

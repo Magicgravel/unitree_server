@@ -26,9 +26,9 @@ default_state_name = ZeroTorque.name
 
 class MotionController:
     def __init__(self, cfg: dict):
-        self.running = True
-        self.num_joints = 29
         self.cfg = cfg
+        self.running = True
+        self.num_joints = self.cfg.get("num_joints", 29)
         self.prev_buttons = {}
         self.dt = 0.02 # 50Hz
         self.state_lock = threading.Lock()

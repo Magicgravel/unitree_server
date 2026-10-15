@@ -1,7 +1,6 @@
 import json
 import os
 import threading
-
 import numpy as np
 import yaml
 

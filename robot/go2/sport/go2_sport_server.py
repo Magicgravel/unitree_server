@@ -1,7 +1,10 @@
 import json
 import os
 import threading
+import numpy as np
 import yaml
+
+from .motion import MotionController
 
 from unitree_sdk2py.rpc.server import Server
 from unitree_sdk2py.rpc.internal import (
@@ -54,9 +57,43 @@ from unitree_sdk2py.go2.sport.sport_api import (
 )
 
 
+class FSM_ID:
+    kInvalid = 0
+    kPassive = 1
+    kSquat = 2
+    kSit = 3
+    kFixStand = 4
+    kWalkMotion = 500
+
+# Unitree FSM id -> 本地 FSM 状态名 (见 states/__init__.py 中的 mode_list)
+FSM_ID_TO_STATE = {
+    FSM_ID.kInvalid: "zero_torque",
+    FSM_ID.kPassive: "passive",
+    FSM_ID.kSquat: "fixed_pose",
+    FSM_ID.kWalkMotion: "walk_motion",   # TODO: 实现 walk_motion 状态
+}
+
 class Go2SportServer(Server):
-    def __init__(self):
+    def __init__(self, sim: bool = False, interface: str = "lo"):
         super().__init__(SPORT_SERVICE_NAME)
+        
+        self._fsm_id = FSM_ID.kInvalid
+        self._lock = threading.Lock()
+        self._control_thread = None
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        config_file = os.path.join(current_dir, "config.yaml")
+        with open(config_file, "r") as f:
+            print(f"Loading config from {config_file}")
+            config = yaml.safe_load(f)
+
+        # 允许通过命令行覆盖配置: --sim / --interface
+        if sim:
+            config["mode"] = "sim"
+        if interface:
+            config["network_interface"] = interface
+
+        self._motion_controller = MotionController(config)
     
     def Init(self):
         self._SetApiVersion(SPORT_API_VERSION)
@@ -100,26 +137,59 @@ class Go2SportServer(Server):
         # self._RegistHandler(SPORT_API_ID_AUTORECOVERY_GET, self._OnAutoRecoveryGet, False)
         # self._RegistHandler(SPORT_API_ID_SWITCHAVOIDMODE, self._OnSwitchAvoidMode, False)
     
+    def set_fsm(self, fsm_id):
+        with self._lock:
+            self._fsm_id = fsm_id
+        
+        state_name = FSM_ID_TO_STATE.get(fsm_id)
+        if state_name and state_name in self._motion_controller.fsm_controller.state:
+            self._motion_controller.fsm_controller.change(state_name)
+        else:
+            print(f"[Go2LocoServer] unknown fsm_id {fsm_id}, keeping current state")
+        return RPC_OK, ""
+    
     def _OnDamp(self, parameter):
-        pass
+        return self.set_fsm(FSM_ID.kPassive)
     
     def _OnBalanceStand(self, parameter):
-        pass
+        return self.set_fsm(FSM_ID.kWalkMotion)
     
     def _OnStopMove(self, parameter):
-        pass
+        return self._OnMove(
+            json.dumps({"x": 0.0, "y": 0.0, "z": 0.0})
+        )
     
     def _OnStandUp(self, parameter):
-        pass
+        return self.set_fsm(FSM_ID.kFixStand)
 
     def _OnStandDown(self, parameter):
-        pass
+        return self.set_fsm(FSM_ID.kSit)
     
     def _OnRecoveryStand(self, parameter):
-        pass
+        return self.set_fsm(FSM_ID.kWalkMotion)
     
     def _OnEuler(self, parameter):
-        pass
+        try:
+            p = json.loads(parameter)
+            roll = p.get("x", 0.0)
+            pitch = p.get("y", 0.0)
+            yaw = p.get("z", 0.0)
+            euler = np.array([roll, pitch, yaw], dtype=np.float32)
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+        
+        self._motion_controller.state_cmd.euler_cmd = euler
+        return RPC_OK, ""
     
     def _OnMove(self, parameter):
-        pass
+        try:
+            p = json.loads(parameter)
+            x = p.get("x", 0.0)
+            y = p.get("y", 0.0)
+            z = p.get("z", 0.0)
+            vel = np.array([x, y, z], dtype=np.float32)
+        except (ValueError, TypeError, AttributeError):
+            return RPC_ERR_SERVER_API_PARAMETER, ""
+
+        self._motion_controller.state_cmd.vel_cmd = vel
+        return RPC_OK, ""
