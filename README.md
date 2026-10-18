@@ -120,6 +120,15 @@ python3 example/t_g1_odom.py lo
 
 # 从机器人麦克风组播录制 30s 音频
 python3 example/t_g1_record.py
+
+# 使用 pygame 读取手柄并测试 unitree_joystick.py（DSL/按键/摇杆）
+python3 example/unitree_joystick_pygame_test.py
+
+# 订阅 unitree_sdk2py_bridge 发布的 rt/lowstate，测试 unitree_joystick.py
+python3 example/unitree_joystick_rt_lowstate_test.py --interface lo --domain-id 0 --robot g1
+
+# 订阅 unitree_sdk2py_bridge 发布的 rt/wirelesscontroller，测试 unitree_joystick.py
+python3 example/unitree_joystick_rt_wirelesscontroller_test.py --interface lo --domain-id 0
 ```
 
 ## 服务端接口
