@@ -18,6 +18,7 @@ class LocoMode(FSMState):
         
         self.state_cmd: StateAndCmd = kwargs.get("state_cmd")
         self.policy_output: PolicyOutput = kwargs.get("policy_output")
+        self.num_joints = self.state_cmd.num_joints
         
         # Load the correct parameter and policy files for velocity control
         param_file = os.path.join(policy_path, "velocity/v0/params/deploy.yaml")
@@ -31,7 +32,7 @@ class LocoMode(FSMState):
         # 2. Parse config from deploy.yaml
         with open(param_file, 'r') as f:
             config = yaml.safe_load(f)
-            
+        
         self.dt = config.get("step_dt", 0.02)
         self.joint2motor_idx = config["joint_ids_map"]
         self.num_actions = len(self.joint2motor_idx)
@@ -43,8 +44,8 @@ class LocoMode(FSMState):
         # Controller configuration
         stiffness = np.array(config["stiffness"], dtype=np.float32)
         damping = np.array(config["damping"], dtype=np.float32)
-        self.kps_reorder = np.zeros(len(self.state_cmd.q) if self.state_cmd else 29, dtype=np.float32)
-        self.kds_reorder = np.zeros(len(self.state_cmd.q) if self.state_cmd else 29, dtype=np.float32)
+        self.kps_reorder = np.zeros(self.num_joints, dtype=np.float32)
+        self.kds_reorder = np.zeros(self.num_joints, dtype=np.float32)
         for i, motor_idx in enumerate(self.joint2motor_idx):
             self.kps_reorder[motor_idx] = stiffness[i]
             self.kds_reorder[motor_idx] = damping[i]
@@ -71,13 +72,13 @@ class LocoMode(FSMState):
         self.dqj_obs = np.zeros(self.num_actions, dtype=np.float32)
         self.gravity_orientation = np.zeros(3, dtype=np.float32)
         self.ang_vel = np.zeros(3, dtype=np.float32)
-                    
+        
         print("Locomotion policy initializing ...")
-                
+    
     
     def enter(self):
         self.start_time = time.time()
-            
+    
     
     def run(self):
         # 1. Retrieve current state
@@ -95,7 +96,7 @@ class LocoMode(FSMState):
         ], dtype=np.float32)
         
         joycmd = self.state_cmd.vel_cmd
-            
+        
         # 2. Process Commands
         self.cmd[0] = np.clip(joycmd[0], self.range_velx[0], self.range_velx[1])
         self.cmd[1] = np.clip(joycmd[1], self.range_vely[0], self.range_vely[1])
@@ -105,7 +106,7 @@ class LocoMode(FSMState):
         for i, motor_idx in enumerate(self.joint2motor_idx):
             self.qj_obs[i] = self.qj[motor_idx]
             self.dqj_obs[i] = self.dqj[motor_idx]
-            
+        
         self.qj_obs = (self.qj_obs - self.default_angles) * self.dof_pos_scale
         self.dqj_obs = self.dqj_obs * self.dof_vel_scale
         self.ang_vel = self.ang_vel * self.ang_vel_scale
@@ -132,7 +133,7 @@ class LocoMode(FSMState):
         action_reorder = np.zeros_like(self.qj)
         for i, motor_idx in enumerate(self.joint2motor_idx):
             action_reorder[motor_idx] = loco_action[i]
-            
+        
         # 7. Update Policy Output
         self.policy_output.actions = action_reorder
         self.policy_output.kps = self.kps_reorder

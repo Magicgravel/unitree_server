@@ -24,12 +24,12 @@ default_angles = [
 
 control_dt = 0.02
 
-class FixedPose(FSMState):
-    name = 'fixed_pose'
+class StandDown(FSMState):
+    name = 'stand_down'
     
     def __init__(self, kwargs):
         super().__init__()
-        self.name = FixedPose.name
+        self.name = StandDown.name
         
         self.state_cmd: StateAndCmd = kwargs.get("state_cmd")
         self.policy_output: PolicyOutput = kwargs.get("policy_output")

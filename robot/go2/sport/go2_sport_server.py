@@ -3,6 +3,7 @@ import os
 import threading
 import numpy as np
 import yaml
+import time
 
 from .motion import MotionController
 
@@ -62,15 +63,18 @@ class FSM_ID:
     kPassive = 1
     kSquat = 2
     kSit = 3
-    kFixStand = 4
+    kStandUp = 4
+    kStandDown = 5
     kWalkMotion = 500
 
 # Unitree FSM id -> 本地 FSM 状态名 (见 states/__init__.py 中的 mode_list)
 FSM_ID_TO_STATE = {
     FSM_ID.kInvalid: "zero_torque",
     FSM_ID.kPassive: "passive",
-    FSM_ID.kSquat: "fixed_pose",
-    FSM_ID.kWalkMotion: "walk_motion",   # TODO: 实现 walk_motion 状态
+    FSM_ID.kSquat: "stand_up",
+    FSM_ID.kStandUp: "stand_up",
+    FSM_ID.kStandDown: "stand_down",
+    FSM_ID.kWalkMotion: "loco_mode",
 }
 
 class Go2SportServer(Server):
@@ -160,10 +164,13 @@ class Go2SportServer(Server):
         )
     
     def _OnStandUp(self, parameter):
-        return self.set_fsm(FSM_ID.kFixStand)
+        ret = self.set_fsm(FSM_ID.kStandUp)
+        time.sleep(2.0)
+        ret = self.set_fsm(FSM_ID.kWalkMotion)
+        return ret
 
     def _OnStandDown(self, parameter):
-        return self.set_fsm(FSM_ID.kSit)
+        return self.set_fsm(FSM_ID.kStandDown)
     
     def _OnRecoveryStand(self, parameter):
         return self.set_fsm(FSM_ID.kWalkMotion)

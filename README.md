@@ -20,7 +20,7 @@ unitree_sdk(提供高层接口，客户端调用) <---> unitree_server(模拟PC1
 
 | Go2 服务 | 模块 | 说明 |
 |------|------|------|
-| (开发中) 运动控制 (`--sport`) | `Go2SportServer` | 基于 FSM + 运动策略（ONNX）的全身运动控制 |
+| (开发中) 运动控制 (`--sport`) | `Go2SportServer` | 基于 FSM + 运动策略（ONNX）的全身运动控制，[策略来源](robot/go2/loco/policy/README.md) |
 
 ## 目录结构
 
@@ -80,9 +80,6 @@ python3 unitree_server.py --sim --loco --audio --arm
 # 实机模式，仅运动控制（网卡按实际修改）
 # 需先进调试模式
 python3 unitree_server.py --loco --interface eth0 --domain_id 0
-
-# 仅语音服务
-python3 unitree_server.py --audio
 ```
 
 ### 2. 命令行参数
@@ -111,24 +108,6 @@ python3 example/ctrl_keyboard.py lo
 
 # 播放 WAV 语音 (需 16kHz 单声道 PCM)
 python3 example/t_g1_play_wav.py lo example/test.wav
-
-# 停止播放
-python3 example/t_g1_play_wav.py lo stop
-
-# 订阅里程计状态
-python3 example/t_g1_odom.py lo
-
-# 从机器人麦克风组播录制 30s 音频
-python3 example/t_g1_record.py
-
-# 使用 pygame 读取手柄并测试 unitree_joystick.py（DSL/按键/摇杆）
-python3 example/unitree_joystick_pygame_test.py
-
-# 订阅 unitree_sdk2py_bridge 发布的 rt/lowstate，测试 unitree_joystick.py
-python3 example/unitree_joystick_rt_lowstate_test.py --interface lo --domain-id 0 --robot g1
-
-# 订阅 unitree_sdk2py_bridge 发布的 rt/wirelesscontroller，测试 unitree_joystick.py
-python3 example/unitree_joystick_rt_wirelesscontroller_test.py --interface lo --domain-id 0
 ```
 
 ## 服务端接口
@@ -156,7 +135,8 @@ python3 example/unitree_joystick_rt_wirelesscontroller_test.py --interface lo --
 
 具体 API ID 见 `unitree_sdk2py/{robot}/{loco,audio,arm}/*_api.py`。
 
-G1 API 说明：https://support.unitree.com/home/zh/G1_developer/services_interface
+- G1 API 说明：https://support.unitree.com/home/zh/G1_developer/services_interface
+- Go2 API 说明：https://support.unitree.com/home/zh/developer/Motion_Services_Interface_V2.0
 
 ## 注意事项
 

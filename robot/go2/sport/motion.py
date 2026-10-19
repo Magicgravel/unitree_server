@@ -15,7 +15,7 @@ from common.ctrlcomp import StateAndCmd, PolicyOutput
 # from common.audio_player import AudioPlayer
 
 
-default_state_name = ZeroTorque.name
+default_state_name = PassiveMode.name
 
 class MotionController:
     def __init__(self, cfg: dict):

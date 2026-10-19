@@ -3,12 +3,14 @@ from fsm.fsm_state import FSMState
 
 from .zero_torque import ZeroTorque
 from .passive_mode import PassiveMode
-from .fixed_pose import FixedPose
-# from .loco_mode import LocoMode
+from .stand_up import StandUp
+from .stand_down import StandDown
+from .loco_mode import LocoMode
 
 mode_list: List[FSMState] = [
     ZeroTorque,
     PassiveMode,
-    FixedPose,
-    # LocoMode,
+    StandUp,
+    StandDown,
+    LocoMode,
 ]
