@@ -107,7 +107,7 @@ class LowStateJoystickTester:
 def main() -> None:
     parser = argparse.ArgumentParser(description="rt/lowstate -> UnitreeJoystick 测试")
     parser.add_argument("--interface", default="lo", help="DDS 网卡名，默认 lo")
-    parser.add_argument("--domain-id", type=int, default=0, help="DDS domain id，默认 0")
+    parser.add_argument("--domain-id", type=int, default=1, help="DDS domain id，默认 0")
     parser.add_argument("--robot", choices=["g1", "go2"], default="g1", help="LowState 类型，默认 g1")
     parser.add_argument("--hz", type=float, default=30.0, help="打印频率，默认 30Hz")
     parser.add_argument(

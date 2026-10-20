@@ -18,11 +18,11 @@ class WirelessController:
         self.unitree_joystick: UnitreeJoystick = UnitreeJoystick()
         self.raw = REMOTE_DATA_RX()
 
-        self._received: bool = False
         self.key_mapping: dict = {}
         self._compiled: dict = {}
         self._prev_state: dict = {}
         self._lock = threading.Lock()
+        self._msg_count: int = 0
 
     def Init(self):
         self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowState_)
@@ -30,16 +30,16 @@ class WirelessController:
     
     def LowStateMessageHandler(self, msg: LowState_):
         self.lowstate = msg
-        self._received = True
+        self._msg_count += 1
 
         # 更新 UnitreeJoystick 的状态
-        self.raw = REMOTE_DATA_RX()
+        self.raw.buff = bytes(msg.wireless_remote)
         # 把 self.lowstate 的无线遥控器数据提取到 raw 中
-        self.raw.RF_RX.btn.value = struct.unpack("I", self.lowstate.wireless_remote[2:6])[0]
-        self.raw.RF_RX.lx = struct.unpack("f", self.lowstate.wireless_remote[4:8])[0]
-        self.raw.RF_RX.ly = struct.unpack("f", self.lowstate.wireless_remote[20:24])[0]
-        self.raw.RF_RX.rx = struct.unpack("f", self.lowstate.wireless_remote[8:12])[0]
-        self.raw.RF_RX.ry = struct.unpack("f", self.lowstate.wireless_remote[12:16])[0]
+        # self.raw.RF_RX.btn.value = struct.unpack("I", self.lowstate.wireless_remote[2:6])[0]
+        # self.raw.RF_RX.lx = struct.unpack("f", self.lowstate.wireless_remote[4:8])[0]
+        # self.raw.RF_RX.ly = struct.unpack("f", self.lowstate.wireless_remote[20:24])[0]
+        # self.raw.RF_RX.rx = struct.unpack("f", self.lowstate.wireless_remote[8:12])[0]
+        # self.raw.RF_RX.ry = struct.unpack("f", self.lowstate.wireless_remote[12:16])[0]
         with self._lock:
             self.unitree_joystick.extract(self.raw)
     
@@ -71,12 +71,40 @@ class WirelessController:
                 except Exception as e:
                     print(f"[WirelessController] callback for {expr!r} failed: {e}")
         
-        # 把当前按下的按键状态打印出来, 便于调试
-        # if self._received:
-        #     with self._lock:
-        #         btn_value = self.raw.RF_RX.btn.value
-        #         lx = self.raw.RF_RX.lx
-        #         ly = self.raw.RF_RX.ly
-        #         rx = self.raw.RF_RX.rx
-        #         ry = self.raw.RF_RX.ry
-        #         print(f"[WirelessController] current button value: {btn_value}, lx: {lx}, ly: {ly}, rx: {rx}, ry: {ry}")
+        self.print_status()
+    
+    def print_status(self) -> None:
+        def _pressed_keys(joy: UnitreeJoystick):
+            names = ["A","B","X","Y","LB","RB","back","start","up","down","left","right","LT","RT"]
+            out = []
+            for name in names:
+                key = getattr(joy, name if name in ("A", "B", "X", "Y", "LB", "RB", "LT", "RT") else name)
+                if key.pressed:
+                    out.append(name)
+            return out
+        
+        with self._lock:
+            pressed = _pressed_keys(self.unitree_joystick)
+            lx = self.unitree_joystick.lx.data
+            ly = self.unitree_joystick.ly.data
+            rx = self.unitree_joystick.rx.data
+            ry = self.unitree_joystick.ry.data
+            msg_count = self._msg_count
+            hits = []
+            for expr, pred in self._compiled.items():
+                state = bool(pred(self.unitree_joystick))
+                if state and not self._prev_state[expr]:
+                    hits.append(expr)
+                self._prev_state[expr] = state
+
+            # 方便核对原始 bitfield
+            btn_u16 = struct.unpack("<H", bytes(self.raw.buff[2:4]))[0]
+
+        print(
+            f"\rmsg={msg_count:<7} btn=0x{btn_u16:04x} pressed={pressed!s:<40} "
+            f"lx={lx:+.2f} ly={ly:+.2f} rx={rx:+.2f} ry={ry:+.2f}",
+            end="",
+            flush=True,
+        )
+        for expr in hits:
+            print(f"\n[DSL HIT] {expr}")

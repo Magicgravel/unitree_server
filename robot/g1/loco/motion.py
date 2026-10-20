@@ -21,8 +21,8 @@ from common.ctrlcomp import StateAndCmd, PolicyOutput
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize
 from unitree_sdk2py.idl.unitree_api.msg.dds_._Request_ import Request_
 
-default_state_name = ZeroTorque.name
-
+# default_state_name = ZeroTorque.name
+default_state_name = LocoMode.name
 
 class MotionController:
     def __init__(self, cfg: dict):

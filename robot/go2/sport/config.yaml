@@ -9,7 +9,7 @@ policy_config: ~/policy/config.yaml
 
 domain_id: 1
 network_interface: lo
-num_joints: 29
+num_joints: 12
 
 lowcmd_topic: "rt/lowcmd"
 lowstate_topic: "rt/lowstate"
