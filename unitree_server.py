@@ -62,6 +62,12 @@ def build_parser():
         "--joystick", action="store_true", default=False, help="启动使用游戏手柄模拟R3"
     )
     parser.add_argument(
+        "--print_scene_info", action="store_true", default=False, help="打印场景信息"
+    )
+    parser.add_argument(
+        "--band", action="store_true", default=False, help="启动虚拟吊绳"
+    )
+    parser.add_argument(
         "--loco", action="store_true", help="启动运动控制服务"
     )
     parser.add_argument(
@@ -100,6 +106,10 @@ def main():
                     f.write(f"INTERFACE = '{args.interface}'\n")
                 elif line.startswith("USE_JOYSTICK ="):
                     f.write(f"USE_JOYSTICK = {args.joystick}\n")
+                elif line.startswith("PRINT_SCENE_INFORMATION ="):
+                    f.write(f"PRINT_SCENE_INFORMATION = {args.print_scene_info}\n")
+                elif line.startswith("ENABLE_ELASTIC_BAND ="):
+                    f.write(f"ENABLE_ELASTIC_BAND = {args.band}\n")
                 else:
                     f.write(line)
         

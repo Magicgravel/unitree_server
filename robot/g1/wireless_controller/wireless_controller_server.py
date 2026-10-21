@@ -29,7 +29,7 @@ class G1WirelessControllerServer:
         loco_server: G1LocoServer=None,
         audio_server: G1AudioServer=None,
         arm_action_server: G1ArmActionServer=None,
-        rate_hz: float=50.0,
+        rate_hz: float=200.0,
     ):
         self.loco_server = loco_server
         self.audio_server = audio_server
@@ -45,8 +45,12 @@ class G1WirelessControllerServer:
         self.wireless_controller.Init()
         
         self.key_mapping_loco = {
+            "LT + Y": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kInvalid})),
             "LT(2s) + B": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kPassive})),
+            "RB + RT + X": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kWjcgetup})),
             "start.on_pressed": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kCpyWalkRun29dofs})),
+            "LT + RT": lambda: print("调试模式"),
+            "LS + RS": lambda: print("复位"),
         }
         self.key_mapping_audio = {
             "up.on_pressed": lambda: self.audio_server._OnSetVolume(10),
@@ -71,6 +75,9 @@ class G1WirelessControllerServer:
     # ------------------------------------------------------------------
     def update(self):
         self.wireless_controller.update()
+        self.loco_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
+        self.loco_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
+        self.loco_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
 
     def _run_loop(self):
         while not self._stop_event.is_set():

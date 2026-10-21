@@ -37,6 +37,7 @@ class FSM_ID:
     kCpyRun29dofs = 801
     kCpyWalkRun29dofs = 802
     kUserLowcmd = 1000
+    kWjcgetup = 1001
 
 
 # Unitree FSM id -> 本地 FSM 状态名 (见 states/__init__.py 中的 mode_list)
@@ -54,6 +55,7 @@ FSM_ID_TO_STATE = {
     FSM_ID.kCpyRun29dofs: "loco",
     FSM_ID.kCpyWalkRun29dofs: "loco",
     FSM_ID.kUserLowcmd: "user_ctrl_mode",
+    FSM_ID.kWjcgetup: "getup_mode",
 }
 
 

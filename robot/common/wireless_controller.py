@@ -34,12 +34,6 @@ class WirelessController:
 
         # 更新 UnitreeJoystick 的状态
         self.raw.buff = bytes(msg.wireless_remote)
-        # 把 self.lowstate 的无线遥控器数据提取到 raw 中
-        # self.raw.RF_RX.btn.value = struct.unpack("I", self.lowstate.wireless_remote[2:6])[0]
-        # self.raw.RF_RX.lx = struct.unpack("f", self.lowstate.wireless_remote[4:8])[0]
-        # self.raw.RF_RX.ly = struct.unpack("f", self.lowstate.wireless_remote[20:24])[0]
-        # self.raw.RF_RX.rx = struct.unpack("f", self.lowstate.wireless_remote[8:12])[0]
-        # self.raw.RF_RX.ry = struct.unpack("f", self.lowstate.wireless_remote[12:16])[0]
         with self._lock:
             self.unitree_joystick.extract(self.raw)
     
@@ -71,7 +65,7 @@ class WirelessController:
                 except Exception as e:
                     print(f"[WirelessController] callback for {expr!r} failed: {e}")
         
-        self.print_status()
+        # self.print_status()
     
     def print_status(self) -> None:
         def _pressed_keys(joy: UnitreeJoystick):

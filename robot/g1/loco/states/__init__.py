@@ -10,6 +10,7 @@ from .loco_mode import LocoMode
 # from .jntm_motion import JntmMotion
 # from .unistore_motion import UsMotion
 from .user_ctrl_mode import UserCtrlMode
+# from .getup_mode import GetupMode
 
 mode_list: List[FSMState] = [
     ZeroTorque,
@@ -21,4 +22,5 @@ mode_list: List[FSMState] = [
     # JntmMotion,
     # UsMotion,
     UserCtrlMode,
+    # GetupMode,
 ]
