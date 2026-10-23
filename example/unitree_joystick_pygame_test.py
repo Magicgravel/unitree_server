@@ -135,7 +135,14 @@ def main() -> None:
     parser.add_argument(
         "--dsl",
         nargs="*",
-        default=["A.on_pressed", "LB+RB", "LT + up", "start.on_pressed"],
+        default=[
+            "A.on_pressed",
+            "LB+RB",
+            "LT + up",
+            "start.on_pressed",
+            "LS + RS",
+            "F1",
+        ],
         help="要验证的 DSL 表达式列表",
     )
     args = parser.parse_args()

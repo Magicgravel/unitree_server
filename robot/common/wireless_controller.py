@@ -4,6 +4,7 @@ import threading
 from unitree_sdk2py.core.channel import ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_
 from unitree_sdk2py.idl.default import unitree_go_msg_dds__LowState_
+from .gamepad_patch import GamepadPatch
 from .unitree_joystick import (
     UnitreeJoystick,
     compile_dsl,
@@ -15,6 +16,7 @@ TOPIC_LOWSTATE = "rt/lowstate"
 class WirelessController:
     def __init__(self):
         self.lowstate: LowState_ = unitree_go_msg_dds__LowState_()
+        self.gamepad_patch: GamepadPatch = GamepadPatch()
         self.unitree_joystick: UnitreeJoystick = UnitreeJoystick()
         self.raw = REMOTE_DATA_RX()
 
@@ -36,6 +38,7 @@ class WirelessController:
         self.raw.buff = bytes(msg.wireless_remote)
         with self._lock:
             self.unitree_joystick.extract(self.raw)
+            self.gamepad_patch.patch(self.unitree_joystick)
     
     def set_key_mapping(self, mapping: dict):
         self.key_mapping = mapping or {}

@@ -26,14 +26,12 @@ from robot.common.wireless_controller import WirelessController
 class G1WirelessControllerServer:
     def __init__(
         self,
-        loco_server: G1LocoServer=None,
-        audio_server: G1AudioServer=None,
-        arm_action_server: G1ArmActionServer=None,
+        context: dict,
         rate_hz: float=200.0,
     ):
-        self.loco_server = loco_server
-        self.audio_server = audio_server
-        self.arm_action_server = arm_action_server
+        self.loco_server: G1LocoServer = context.get('loco_server', None)
+        self.audio_server: G1AudioServer = context.get('audio_server', None)
+        self.arm_action_server: G1ArmActionServer = context.get('arm_server', None)
 
         self.rate_hz = rate_hz
         self.period = 1.0 / rate_hz
@@ -49,8 +47,9 @@ class G1WirelessControllerServer:
             "LT(2s) + B": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kPassive})),
             "RB + RT + X": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kWjcgetup})),
             "start.on_pressed": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kCpyWalkRun29dofs})),
+            
             "LT + RT": lambda: print("调试模式"),
-            "LS + RS": lambda: print("复位"),
+            "LS + RS": lambda: (mj_launcher.reset() if (mj_launcher := context.get("unitree_mujoco_launcher")) else None),
         }
         self.key_mapping_audio = {
             "up.on_pressed": lambda: self.audio_server._OnSetVolume(10),
@@ -67,7 +66,7 @@ class G1WirelessControllerServer:
             self.key_mapping.update(self.key_mapping_audio)
         if self.arm_action_server is not None:
             self.key_mapping.update(self.key_mapping_arm)
-        # print(f"[G1WirelessControllerServer] key mapping: {self.key_mapping}")
+        
         self.wireless_controller.set_key_mapping(self.key_mapping)
 
     # ------------------------------------------------------------------

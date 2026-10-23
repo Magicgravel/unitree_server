@@ -2,11 +2,12 @@ from fsm.fsm_state import FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 
-kds = [8,8,8,8,8,8,
-      8,8,8,8,8,8,
-      8,8,8,
-      8,8,8,8,8,8,8,
-      8,8,8,8,8,8,8]
+# kds = [8,8,8,8,8,8,
+#       8,8,8,8,8,8,
+#       8,8,8,
+#       8,8,8,8,8,8,8,
+#       8,8,8,8,8,8,8]
+kds = [1] * 29
 
 kps = [0,0,0,0,0,0,
       0,0,0,0,0,0,

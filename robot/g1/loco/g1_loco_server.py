@@ -60,7 +60,7 @@ FSM_ID_TO_STATE = {
 
 
 class G1LocoServer(Server):
-    def __init__(self, sim: bool = False, interface: str = "lo"):
+    def __init__(self, context: dict):
         super().__init__(LOCO_SERVICE_NAME)
 
         self._fsm_id = FSM_ID.kInvalid
@@ -72,15 +72,12 @@ class G1LocoServer(Server):
         config_file = os.path.join(current_dir, "config.yaml")
         with open(config_file, "r") as f:
             print(f"Loading config from {config_file}")
-            config = yaml.safe_load(f)
+            config: dict = yaml.safe_load(f)
 
-        # 允许通过命令行覆盖配置: --sim / --interface
-        if sim:
-            config["mode"] = "sim"
-        if interface:
-            config["network_interface"] = interface
+        config.update(context)
+        context = config
 
-        self._motion_controller = MotionController(config)
+        self._motion_controller = MotionController(context)
 
     def Init(self):
         self._SetApiVersion(LOCO_API_VERSION)

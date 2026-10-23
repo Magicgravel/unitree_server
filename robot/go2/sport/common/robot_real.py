@@ -43,7 +43,7 @@ class RobotReal:
 
         print("Connected!")
         
-        for i in range(29):
+        for i in range(self.low_cmd.motor_cmd.__len__()):  # TODO
             self.low_cmd.motor_cmd[i].mode = 1  # 1:Enable, 0:Disable
     
     def low_state_handler(self, msg):

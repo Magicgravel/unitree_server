@@ -8,11 +8,11 @@ MOTION_ROOT = Path(__file__).parent.expanduser().resolve()
 if str(MOTION_ROOT) not in sys.path:
     sys.path.insert(0, str(MOTION_ROOT))
 
-from fsm.fsm import FSM
-from states import *
+from .fsm.fsm import FSM
+from .states import *
 
-from common.ctrlcomp import StateAndCmd, PolicyOutput
-# from common.audio_player import AudioPlayer
+from .common.ctrlcomp import StateAndCmd, PolicyOutput
+# from .common.audio_player import AudioPlayer
 
 default_state_name = PassiveMode.name
 # default_state_name = LocoMode.name
@@ -29,11 +29,11 @@ class MotionController:
         self.cfg["state_lock"] = self.state_lock
         self.cfg["cmd_lock"] = self.cmd_lock
         
-        if self.cfg.get("mode", "sim") == "sim":
-            self.sim_mode = True
-            self.cfg["network_interface"] = "lo"
-        else:
-            self.sim_mode = False
+        self.sim_mode = False
+        # if self.cfg.get("sim", False):
+        #     self.sim_mode = True
+        # else:
+        #     self.sim_mode = False
         
         if self.cfg.get("play_audio", False) and not self.sim_mode:
             print("Initializing Audio Player...")
@@ -46,10 +46,10 @@ class MotionController:
         
         # Setup Robot Communication
         if not self.sim_mode:
-            from common.robot_real import RobotReal
+            from .common.robot_real import RobotReal
             self.robot = RobotReal(self.cfg)
         else:
-            from common.robot_sim import RobotSim
+            from .common.robot_sim import RobotSim
             self.robot = RobotSim(self.cfg.get("robot_model"))
         
         self.state_cmd.lowstate = self.robot.low_state
@@ -68,7 +68,7 @@ class MotionController:
         if self.cfg.get("control", True):
             self.robot.run()
 
-    def step(self): 
+    def step(self):
         with self.state_lock:
             self.state_cmd.lowstate = self.robot.low_state
             

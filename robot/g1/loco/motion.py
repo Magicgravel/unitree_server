@@ -21,8 +21,8 @@ from common.ctrlcomp import StateAndCmd, PolicyOutput
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize
 from unitree_sdk2py.idl.unitree_api.msg.dds_._Request_ import Request_
 
-# default_state_name = ZeroTorque.name
-default_state_name = PassiveMode.name
+default_state_name = ZeroTorque.name
+# default_state_name = PassiveMode.name
 # default_state_name = LocoMode.name
 
 class MotionController:
@@ -37,11 +37,11 @@ class MotionController:
         self.cfg["state_lock"] = self.state_lock
         self.cfg["cmd_lock"] = self.cmd_lock
         
-        if self.cfg.get("mode", "sim") == "sim":
-            self.sim_mode = True
-            self.cfg["network_interface"] = "lo"
-        else:
-            self.sim_mode = False
+        self.sim_mode = False
+        # if self.cfg.get("sim", False):
+        #     self.sim_mode = True
+        # else:
+        #     self.sim_mode = False
         
         if self.cfg.get("play_audio", False) and not self.sim_mode:
             print("Initializing Audio Player...")
