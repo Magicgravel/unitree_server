@@ -1,5 +1,5 @@
 from typing import List
-from fsm.fsm_state import FSMState
+from ....common.fsm.fsm_state import FSMState
 
 from .zero_torque import ZeroTorque
 from .passive_mode import PassiveMode
@@ -8,7 +8,6 @@ from .loco_mode import LocoMode
 # from .loco_mode_pt import LocoModePt
 # from .loco_mode_wbc_fsm import LocoMode_wbc_fsm
 # from .jntm_motion import JntmMotion
-# from .unistore_motion import UsMotion
 from .user_ctrl_mode import UserCtrlMode
 # from .getup_mode import GetupMode
 
@@ -20,7 +19,6 @@ mode_list: List[FSMState] = [
     # LocoModePt,
     # LocoMode_wbc_fsm,
     # JntmMotion,
-    # UsMotion,
     UserCtrlMode,
     # GetupMode,
 ]

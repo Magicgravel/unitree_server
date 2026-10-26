@@ -1,5 +1,5 @@
-from fsm.fsm_state import FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput
+from ....common.fsm.fsm_state import FSMState
+from ....common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 import yaml
 import time
@@ -18,7 +18,7 @@ class LocoMode(FSMState):
         
         self.state_cmd: StateAndCmd = kwargs.get("state_cmd")
         self.policy_output: PolicyOutput = kwargs.get("policy_output")
-        self.num_joints = self.state_cmd.num_joints
+        self.num_joints: int = self.state_cmd.num_joints
         
         # Load the correct parameter and policy files for velocity control
         param_file = os.path.join(policy_path, "velocity/v0/params/deploy.yaml")
@@ -44,8 +44,8 @@ class LocoMode(FSMState):
         # Controller configuration
         stiffness = np.array(config["stiffness"], dtype=np.float32)
         damping = np.array(config["damping"], dtype=np.float32)
-        self.kps_reorder = np.zeros(self.num_joints, dtype=np.float32)
-        self.kds_reorder = np.zeros(self.num_joints, dtype=np.float32)
+        self.kps_reorder = np.zeros(self.num_actions, dtype=np.float32)
+        self.kds_reorder = np.zeros(self.num_actions, dtype=np.float32)
         for i, motor_idx in enumerate(self.joint2motor_idx):
             self.kps_reorder[motor_idx] = stiffness[i]
             self.kds_reorder[motor_idx] = damping[i]
@@ -82,8 +82,8 @@ class LocoMode(FSMState):
     
     def run(self):
         # 1. Retrieve current state
-        self.qj = np.array([m.q for m in self.state_cmd.lowstate.motor_state[:29]], dtype=np.float32)
-        self.dqj = np.array([m.dq for m in self.state_cmd.lowstate.motor_state[:29]], dtype=np.float32)
+        self.qj = np.array([m.q for m in self.state_cmd.lowstate.motor_state[:self.num_actions]], dtype=np.float32)
+        self.dqj = np.array([m.dq for m in self.state_cmd.lowstate.motor_state[:self.num_actions]], dtype=np.float32)
         
         imu = self.state_cmd.lowstate.imu_state
         self.ang_vel = np.array([imu.gyroscope[0], imu.gyroscope[1], imu.gyroscope[2]], dtype=np.float32)

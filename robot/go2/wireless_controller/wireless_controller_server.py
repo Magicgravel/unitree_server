@@ -38,7 +38,7 @@ class Go2WirelessControllerServer:
         
         # 按键映射配置
         self.key_mapping_sport = {
-            "LT(2s) + B": lambda: self.sport_server._OnDamp(),
+            "LT(2s) + B": lambda: self.sport_server._OnDamp(None),
             "start.on_pressed": lambda: self.sport_server.set_fsm(FSM_ID.kWalkMotion),
             
             "LT + RT": lambda: print("调试模式"),
@@ -62,9 +62,9 @@ class Go2WirelessControllerServer:
     def update(self):
         self.wireless_controller.update()
         if self.sport_server is not None:
-            self.sport_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
-            self.sport_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
-            self.sport_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
+            self.sport_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.8
+            self.sport_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * -1.0
+            self.sport_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.5
 
     def _run_loop(self):
         while not self._stop_event.is_set():
@@ -82,3 +82,5 @@ class Go2WirelessControllerServer:
 
     def Stop(self):
         self._stop_event.set()
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=2.0)

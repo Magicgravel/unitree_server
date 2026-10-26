@@ -1,33 +1,28 @@
-import argparse
+import os
+import yaml
 import threading
 import time
-import os
-import sys
-import yaml
-import json
 import numpy as np
-from pathlib import Path
 
-MOTION_ROOT = Path(__file__).parent.expanduser().resolve()
-if str(MOTION_ROOT) not in sys.path:
-    sys.path.insert(0, str(MOTION_ROOT))
-
-from fsm.fsm import FSM
-from states import *
-
-from common.ctrlcomp import StateAndCmd, PolicyOutput
-# from common.audio_player import AudioPlayer
-
-from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.idl.unitree_api.msg.dds_._Request_ import Request_
+from .states import *
+from ...common.fsm.fsm import FSM
+from ...common.ctrlcomp import StateAndCmd, PolicyOutput
+# from ...common.audio_player import AudioPlayer
 
 default_state_name = ZeroTorque.name
 # default_state_name = PassiveMode.name
 # default_state_name = LocoMode.name
 
 class MotionController:
-    def __init__(self, cfg: dict):
-        self.cfg = cfg
+    def __init__(self, context: dict):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        config_file = os.path.join(current_dir, "config.yaml")
+        with open(config_file, "r") as f:
+            print(f"Loading config from {config_file}")
+            config: dict = yaml.safe_load(f)
+        config.update(context)
+        self.cfg = config
+        
         self.running = True
         self.num_joints = self.cfg.get("num_joints", 29)
         self.prev_buttons = {}
@@ -54,10 +49,10 @@ class MotionController:
         
         # Setup Robot Communication
         if not self.sim_mode:
-            from common.robot_real import RobotReal
+            from ...common.robot_real import RobotReal
             self.robot = RobotReal(self.cfg)
         else:
-            from common.robot_sim import RobotSim
+            from ...common.robot_sim import RobotSim
             self.robot = RobotSim(self.cfg.get("robot_model"))
         
         self.state_cmd.lowstate = self.robot.low_state
@@ -131,69 +126,3 @@ class MotionController:
     def stop(self):
         self.running = False
         self.robot.stop()
-
-
-ROBOT_API_ID_LOCO_SET_VELOCITY = 7105
-SPORT_API_ID_MOVE = 1008
-
-class MoveController:
-    def __init__(self, controller: MotionController):
-        self.motion_controller = controller
-        self.subscriber = ChannelSubscriber('rt/api/sport/request', Request_)
-        self.subscriber.Init(self.move_callback, 10)
-
-    def move_callback(self, msg: Request_):
-        api_id = msg.header.identity.api_id
-        p = json.loads(msg.parameter)
-        if api_id == ROBOT_API_ID_LOCO_SET_VELOCITY:
-            velocity = p.get("velocity", [0.0, 0.0, 0.0])
-            duration = p.get("duration", 1.0)
-        elif api_id == SPORT_API_ID_MOVE:
-            velocity = [p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0)]
-            duration = p.get("duration", 1.0)
-        else:
-            return
-        self.motion_controller.state_cmd.vel_cmd = np.array(velocity, dtype=np.float32)
-        # print(f"[motion.py] velocity: {velocity}")
-
-
-def teleop_key_callback(remote_data):
-    lx, ly, rx, ry, keys = remote_data
-    if keys == 1:
-        motion_controller.fsm_controller.change(PassiveMode.name)
-    elif keys == 2:
-        motion_controller.fsm_controller.change(FixedPose.name)
-    elif keys == 3:
-        motion_controller.fsm_controller.change(LocoMode.name)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sim", action='store_true', help="Run in simulation mode (no robot communication)")
-    parser.add_argument("--net", type=str, default="lo", help="Network interface for robot communication.")
-    args = parser.parse_args()
-    
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    config_file = os.path.join(current_dir, "config.yaml")
-    with open(config_file, 'r') as f:
-        print(f"Loading config from {config_file}")
-        config = yaml.safe_load(f)
-    
-    if args.sim:
-        config["mode"] = "sim"
-    if args.net:
-        config["network_interface"] = args.net
-    
-    try:
-        motion_controller = MotionController(config)
-        move_controller = MoveController(motion_controller)
-        
-        # keyboard_teleop = TeleopKeyboard(teleop_key_callback)
-        # keyboard_teleop.raw_mode = False
-        # keyboard_teleop.run_in_thread()
-        
-        motion_controller.run()
-    except KeyboardInterrupt:
-        print("Stopping...")
-        motion_controller.stop()
-        sys.exit(0)

@@ -84,16 +84,7 @@ class Go2SportServer(Server):
         self._fsm_id = FSM_ID.kInvalid
         self._lock = threading.Lock()
         self._control_thread = None
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        config_file = os.path.join(current_dir, "config.yaml")
-        with open(config_file, "r") as f:
-            print(f"Loading config from {config_file}")
-            config: dict = yaml.safe_load(f)
-
-        config.update(context)
-        context = config
-
+        
         self._motion_controller = MotionController(context)
     
     def Init(self):
@@ -151,6 +142,8 @@ class Go2SportServer(Server):
 
     def Stop(self):
         self._motion_controller.stop()
+        if self._control_thread is not None and self._control_thread.is_alive():
+            self._control_thread.join(timeout=2.0)
     
     def set_fsm(self, fsm_id):
         with self._lock:

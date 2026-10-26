@@ -1,8 +1,8 @@
-from common.path_config import PROJECT_ROOT
+from ....common.path_config import PROJECT_ROOT
 
-from fsm.fsm_state import FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput
-from common.utils import scale_values
+from ....common.fsm.fsm_state import FSMState
+from ....common.ctrlcomp import StateAndCmd, PolicyOutput
+from ....common.utils import scale_values
 import numpy as np
 import yaml
 import torch

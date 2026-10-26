@@ -1,5 +1,5 @@
-from fsm.fsm_state import FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput
+from ....common.fsm.fsm_state import FSMState
+from ....common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 
 kps = [100, 100, 100, 150, 40, 40,

@@ -1,25 +1,27 @@
+import os
+import yaml
 import threading
 import time
-import sys
 import numpy as np
-from pathlib import Path
 
-MOTION_ROOT = Path(__file__).parent.expanduser().resolve()
-if str(MOTION_ROOT) not in sys.path:
-    sys.path.insert(0, str(MOTION_ROOT))
-
-from .fsm.fsm import FSM
 from .states import *
-
-from .common.ctrlcomp import StateAndCmd, PolicyOutput
-# from .common.audio_player import AudioPlayer
+from ...common.fsm.fsm import FSM
+from ...common.ctrlcomp import StateAndCmd, PolicyOutput
+# from ...common.audio_player import AudioPlayer
 
 default_state_name = PassiveMode.name
 # default_state_name = LocoMode.name
 
 class MotionController:
-    def __init__(self, cfg: dict):
-        self.cfg = cfg
+    def __init__(self, context: dict):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        config_file = os.path.join(current_dir, "config.yaml")
+        with open(config_file, "r") as f:
+            print(f"Loading config from {config_file}")
+            config: dict = yaml.safe_load(f)
+        config.update(context)
+        self.cfg = config
+        
         self.running = True
         self.num_joints = self.cfg.get("num_joints", 12)
         self.prev_buttons = {}
@@ -46,10 +48,10 @@ class MotionController:
         
         # Setup Robot Communication
         if not self.sim_mode:
-            from .common.robot_real import RobotReal
+            from ...common.robot_real import RobotReal
             self.robot = RobotReal(self.cfg)
         else:
-            from .common.robot_sim import RobotSim
+            from ...common.robot_sim import RobotSim
             self.robot = RobotSim(self.cfg.get("robot_model"))
         
         self.state_cmd.lowstate = self.robot.low_state

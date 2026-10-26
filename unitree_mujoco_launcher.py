@@ -38,6 +38,7 @@ class UnitreeMujocoLauncher:
         self.config = Config()
         self.viewer_thread = None
         self.sim_thread = None
+        self.bridge = None
         self.locker = threading.Lock()
     
     def init(self):
@@ -88,14 +89,24 @@ class UnitreeMujocoLauncher:
         self.sim_thread.start()
 
     def stop_simulation(self):
-        if self.viewer_thread.is_alive():
+        # 关闭渲染窗口, 让 viewer/sim 线程退出
+        viewer = getattr(self, "viewer", None)
+        if viewer is not None and viewer.is_running():
+            viewer.close()
+        if self.viewer_thread is not None and self.viewer_thread.is_alive():
             self.viewer_thread.join()
-        if self.sim_thread.is_alive():
+        if self.sim_thread is not None and self.sim_thread.is_alive():
             self.sim_thread.join()
+        # 停止 UnitreeSdk2Bridge 所有 DDS 周期发布线程
+        if self.bridge is not None:
+            self.bridge.lowStateThread.Wait()
+            self.bridge.HighStateThread.Wait()
+            self.bridge.WirelessControllerThread.Wait()
     
     def SimulationThread(self):
         from unitree_mujoco.simulate_python.unitree_sdk2py_bridge import UnitreeSdk2Bridge
         unitree = UnitreeSdk2Bridge(self.mj_model, self.mj_data)
+        self.bridge = unitree
 
         if self.config.USE_JOYSTICK:
             unitree.SetupJoystick(device_id=0, js_type=self.config.JOYSTICK_TYPE)

@@ -81,7 +81,7 @@ class G1WirelessControllerServer:
         self.wireless_controller.update()
         if self.loco_server is not None:
             self.loco_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
-            self.loco_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
+            self.loco_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * -0.5
             self.loco_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
 
     def _run_loop(self):
@@ -100,3 +100,5 @@ class G1WirelessControllerServer:
 
     def Stop(self):
         self._stop_event.set()
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=2.0)

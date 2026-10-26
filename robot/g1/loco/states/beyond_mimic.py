@@ -1,9 +1,9 @@
-from fsm.fsm_state import FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput
-from common.motion_loader import MotionLoader
-from common.param_loader import ParamLoader
-from common.observation import ObservationReal
-from common.audio_player import AudioPlayer
+from ....common.fsm.fsm_state import FSMState
+from ....common.ctrlcomp import StateAndCmd, PolicyOutput
+from ....common.motion_loader import MotionLoader
+from ....common.param_loader import ParamLoader
+from ....common.observation import ObservationReal
+from ....common.audio_player import AudioPlayer
 import numpy as np
 import time
 import os
@@ -14,7 +14,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 policy_path = os.path.join(current_dir, "../policy")
 
 class BeyondMimic(FSMState):
-    name = 'mjlab_motion'
+    name = 'beyond_mimic'
     
     def __init__(self, kwargs: dict):
         super().__init__()

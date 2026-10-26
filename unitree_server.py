@@ -24,7 +24,6 @@ Unitree 机器人服务入口 (Unitree Robot Server Entry Point).
 """
 
 import argparse
-import os
 import signal
 import threading
 
@@ -38,7 +37,7 @@ from robot.g1.wireless_controller.wireless_controller_server import G1WirelessCo
 from robot.go2.sport.go2_sport_server import Go2SportServer
 from robot.go2.wireless_controller.wireless_controller_server import Go2WirelessControllerServer
 
-# 目前仅实现了 G1 的服务端, 后续可扩展 h2/go2/r1 等机型。
+# 目前仅实现了 G1/Go2 的服务端, 后续可扩展 H2/R1 等机型
 SUPPORTED_ROBOTS = ("g1", "go2")
 
 def build_parser():
@@ -101,39 +100,6 @@ def main():
         unitree_mujoco_launcher.start_simulation()
         
         context['unitree_mujoco_launcher'] = unitree_mujoco_launcher
-        
-        # UNITREE_MUJOCO_DIR = os.path.dirname(os.path.abspath(__file__)) + "/unitree_mujoco/simulate_python"
-        # if not os.path.exists(UNITREE_MUJOCO_DIR):
-        #     print(f"[unitree_server] simulation directory not found: {UNITREE_MUJOCO_DIR}")
-        #     print(f"[unitree_server] clone the repository using:")
-        #     print(f"    git clone https://github.com/UnitreeRobotics/unitree_mujoco.git")
-        #     print(f"    or")
-        #     print(f"    git submodule update --init --recursive")
-        #     return
-        # print("[unitree_server] running in simulation mode.")
-        # # 修改 unitree_mujoco/simulate_python/config.py 中的 ROBOT，USE_JOYSTICK 字段
-        # config_path = os.path.join(UNITREE_MUJOCO_DIR, "config.py")
-        # with open(config_path, "r") as f:
-        #     config_lines = f.readlines()
-        # with open(config_path, "w") as f:
-        #     for line in config_lines:
-        #         if line.startswith("ROBOT ="):
-        #             f.write(f"ROBOT = '{args.robot}'\n")
-        #         elif line.startswith("DOMAIN_ID ="):
-        #             f.write(f"DOMAIN_ID = {args.domain_id}\n")
-        #         elif line.startswith("INTERFACE ="):
-        #             f.write(f"INTERFACE = '{args.interface}'\n")
-        #         elif line.startswith("USE_JOYSTICK ="):
-        #             f.write(f"USE_JOYSTICK = {args.joystick}\n")
-        #         elif line.startswith("PRINT_SCENE_INFORMATION ="):
-        #             f.write(f"PRINT_SCENE_INFORMATION = {args.print_scene_info}\n")
-        #         elif line.startswith("ENABLE_ELASTIC_BAND ="):
-        #             f.write(f"ENABLE_ELASTIC_BAND = {args.band}\n")
-        #         else:
-        #             f.write(line)
-        # # 运行 unitree_mujoco/simulation_python/unitree_mujoco.py
-        # import subprocess
-        # subprocess.Popen(["python3", "unitree_mujoco.py"], cwd=UNITREE_MUJOCO_DIR)
 
     servers = []
     stop_event = threading.Event()

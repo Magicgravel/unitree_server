@@ -1,5 +1,5 @@
-from fsm.fsm_state import FSMState
-from common.ctrlcomp import StateAndCmd, PolicyOutput
+from ....common.fsm.fsm_state import FSMState
+from ....common.ctrlcomp import StateAndCmd, PolicyOutput
 
 from unitree_sdk2py.core.channel import ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_
