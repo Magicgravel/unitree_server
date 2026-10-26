@@ -137,6 +137,20 @@ class Go2SportServer(Server):
         # self._RegistHandler(SPORT_API_ID_AUTORECOVERY_SET, self._OnAutoRecoverySet, False)
         # self._RegistHandler(SPORT_API_ID_AUTORECOVERY_GET, self._OnAutoRecoveryGet, False)
         # self._RegistHandler(SPORT_API_ID_SWITCHAVOIDMODE, self._OnSwitchAvoidMode, False)
+        self._StartControlLoop()
+
+    def _StartControlLoop(self):
+        """在后台线程运行 50Hz 的 FSM 控制循环."""
+        if self._control_thread is None or not self._control_thread.is_alive():
+            self._control_thread = threading.Thread(
+                target=self._motion_controller.run,
+                name="sport_control",
+                daemon=True,
+            )
+            self._control_thread.start()
+
+    def Stop(self):
+        self._motion_controller.stop()
     
     def set_fsm(self, fsm_id):
         with self._lock:

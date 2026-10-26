@@ -15,7 +15,6 @@
 
 import json
 import threading
-import time
 
 from robot.g1.loco.g1_loco_server import FSM_ID, G1LocoServer
 from robot.g1.audio.g1_audio_server import G1AudioServer
@@ -39,9 +38,10 @@ class G1WirelessControllerServer:
         self._thread = None
         self._stop_event = threading.Event()
 
-        self.wireless_controller = WirelessController()
+        self.wireless_controller = WirelessController(robot="g1")
         self.wireless_controller.Init()
         
+        # 按键映射配置
         self.key_mapping_loco = {
             "LT + Y": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kInvalid})),
             "LT(2s) + B": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kPassive})),
@@ -49,7 +49,6 @@ class G1WirelessControllerServer:
             "start.on_pressed": lambda: self.loco_server._OnSetFsmId(json.dumps({"data": FSM_ID.kCpyWalkRun29dofs})),
             
             "LT + RT": lambda: print("调试模式"),
-            "LS + RS": lambda: (mj_launcher.reset() if (mj_launcher := context.get("unitree_mujoco_launcher")) else None),
         }
         self.key_mapping_audio = {
             "up.on_pressed": lambda: self.audio_server._OnSetVolume(10),
@@ -57,6 +56,10 @@ class G1WirelessControllerServer:
         }
         self.key_mapping_arm = {
             "X.on_pressed": lambda: self.arm_action_server._OnExecuteAction(json.dumps({"data": "shake hand"})),
+        }
+        self.key_mapping_internal = {
+            "LB + RB": lambda: (mj_launcher.reset() if (mj_launcher := context.get("unitree_mujoco_launcher")) else None),
+            "A + B + X + Y": lambda: print("test"),
         }
 
         self.key_mapping = {}
@@ -66,6 +69,8 @@ class G1WirelessControllerServer:
             self.key_mapping.update(self.key_mapping_audio)
         if self.arm_action_server is not None:
             self.key_mapping.update(self.key_mapping_arm)
+        if self.key_mapping_internal is not None:
+            self.key_mapping.update(self.key_mapping_internal)
         
         self.wireless_controller.set_key_mapping(self.key_mapping)
 
@@ -74,9 +79,10 @@ class G1WirelessControllerServer:
     # ------------------------------------------------------------------
     def update(self):
         self.wireless_controller.update()
-        self.loco_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
-        self.loco_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
-        self.loco_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
+        if self.loco_server is not None:
+            self.loco_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
+            self.loco_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
+            self.loco_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
 
     def _run_loop(self):
         while not self._stop_event.is_set():

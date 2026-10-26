@@ -10,7 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 policy_path = os.path.join(current_dir, "../policy")
 
 class LocoMode(FSMState):
-    name = 'loco'
+    name = 'loco_mode'
     
     def __init__(self, kwargs):
         super().__init__()

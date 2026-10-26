@@ -15,7 +15,7 @@
 
 import threading
 
-from robot.go2.sport.go2_sport_server import Go2SportServer
+from robot.go2.sport.go2_sport_server import FSM_ID, Go2SportServer
 from robot.common.wireless_controller import WirelessController
 
 
@@ -33,21 +33,27 @@ class Go2WirelessControllerServer:
         self._thread = None
         self._stop_event = threading.Event()
 
-        self.wireless_controller = WirelessController()
+        self.wireless_controller = WirelessController(robot="go2")
         self.wireless_controller.Init()
         
+        # 按键映射配置
         self.key_mapping_sport = {
             "LT(2s) + B": lambda: self.sport_server._OnDamp(),
-            "start.on_pressed": lambda: self.sport_server._OnRecoveryStand(),
+            "start.on_pressed": lambda: self.sport_server.set_fsm(FSM_ID.kWalkMotion),
             
             "LT + RT": lambda: print("调试模式"),
-            "LS + RS": lambda: (mj_launcher.reset() if (mj_launcher := context.get("unitree_mujoco_launcher")) else None),
+        }
+        self.key_mapping_internal = {
+            "LB + RB": lambda: (mj_launcher.reset() if (mj_launcher := context.get("unitree_mujoco_launcher")) else None),
+            "A + B + X + Y": lambda: print("test"),
         }
 
         self.key_mapping = {}
         if self.sport_server is not None:
             self.key_mapping.update(self.key_mapping_sport)
-
+        if self.key_mapping_internal is not None:
+            self.key_mapping.update(self.key_mapping_internal)
+        
         self.wireless_controller.set_key_mapping(self.key_mapping)
 
     # ------------------------------------------------------------------
@@ -55,9 +61,10 @@ class Go2WirelessControllerServer:
     # ------------------------------------------------------------------
     def update(self):
         self.wireless_controller.update()
-        self.sport_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
-        self.sport_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
-        self.sport_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
+        if self.sport_server is not None:
+            self.sport_server._motion_controller.state_cmd.vel_cmd[0] = self.wireless_controller.raw.RF_RX.ly * 0.5
+            self.sport_server._motion_controller.state_cmd.vel_cmd[1] = self.wireless_controller.raw.RF_RX.lx * 0.5
+            self.sport_server._motion_controller.state_cmd.vel_cmd[2] = self.wireless_controller.raw.RF_RX.rx * -1.0
 
     def _run_loop(self):
         while not self._stop_event.is_set():

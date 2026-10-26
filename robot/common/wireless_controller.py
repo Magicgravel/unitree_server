@@ -2,8 +2,12 @@ import struct
 import threading
 
 from unitree_sdk2py.core.channel import ChannelSubscriber
-from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_
-from unitree_sdk2py.idl.default import unitree_go_msg_dds__LowState_
+from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as HgLowState_
+from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowState_ as GoLowState_
+from unitree_sdk2py.idl.default import (
+    unitree_go_msg_dds__LowState_,
+    unitree_hg_msg_dds__LowState_,
+)
 from .gamepad_patch import GamepadPatch
 from .unitree_joystick import (
     UnitreeJoystick,
@@ -14,8 +18,17 @@ from .unitree_joystick import (
 TOPIC_LOWSTATE = "rt/lowstate"
 
 class WirelessController:
-    def __init__(self):
-        self.lowstate: LowState_ = unitree_go_msg_dds__LowState_()
+    def __init__(self, robot: str = "g1"):
+        # go2 仿真发布的是 unitree_go::msg::dds_::LowState_, 而 g1 发布的是
+        # unitree_hg::msg::dds_::LowState_. DDS 按类型名匹配, 类型不对将收不到消息。
+        if robot == "go2":
+            self._low_state_type = GoLowState_
+            self._low_state_default = unitree_go_msg_dds__LowState_
+        else:
+            self._low_state_type = HgLowState_
+            self._low_state_default = unitree_hg_msg_dds__LowState_
+
+        self.lowstate = self._low_state_default()
         self.gamepad_patch: GamepadPatch = GamepadPatch()
         self.unitree_joystick: UnitreeJoystick = UnitreeJoystick()
         self.raw = REMOTE_DATA_RX()
@@ -27,10 +40,10 @@ class WirelessController:
         self._msg_count: int = 0
 
     def Init(self):
-        self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowState_)
+        self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, self._low_state_type)
         self.lowstate_subscriber.Init(self.LowStateMessageHandler, 10)
     
-    def LowStateMessageHandler(self, msg: LowState_):
+    def LowStateMessageHandler(self, msg):
         self.lowstate = msg
         self._msg_count += 1
 
@@ -60,10 +73,11 @@ class WirelessController:
                 self._prev_state[expr] = state
 
         for expr in triggered:
+            print(f"[WirelessController] {expr!r} triggered")
             callback = self.key_mapping.get(expr)
             if callback is not None:
                 try:
-                    print(f"[WirelessController] triggering callback for {expr!r}")
+                    # print(f"[WirelessController] triggering callback for {expr!r}")
                     callback()
                 except Exception as e:
                     print(f"[WirelessController] callback for {expr!r} failed: {e}")

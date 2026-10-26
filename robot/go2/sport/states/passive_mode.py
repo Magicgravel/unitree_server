@@ -2,10 +2,10 @@ from fsm.fsm_state import FSMState
 from common.ctrlcomp import StateAndCmd, PolicyOutput
 import numpy as np
 
-kds = [3,3,3,
-       3,3,3,
-       3,3,3,
-       3,3,3]
+kds = [3,2,1,
+       3,2,1,
+       3,2,1,
+       3,2,1]
 
 kps = [0,0,0,
        0,0,0,
